@@ -255,7 +255,7 @@ def calcular_cotizacion(df):
     df["ID INSURATLAN"] = df.index + 5000
     
     # FECH: igual a FECHA LIQ EN ARQUIVO (asegúrate que esa columna exista en tu archivo)
-    df["FECH"] = df["FECHA LIQ EN ARQUIVO"]
+    df["FECH"] = df["Fecha Liq"]
     
     # TIPO IDENTIFICACION basado en NUMERO IDENTIFICACION
     def tipo_identificacion(valor):
