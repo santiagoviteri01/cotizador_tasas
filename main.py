@@ -159,6 +159,27 @@ def obtener_mark_up_mapfre(row):
             return 0.0
     except:
         return 0.0
+
+def obtener_mark_up_zurich(row):
+    valor = row["VALOR TOTAL ASEGURADO"]
+    tasa_aplica = row["TASA APLICADA"]
+    tasa_seguro = row["TASA SEGURO"]
+    
+    if pd.isna(valor) or pd.isna(tasa_aplica) or pd.isna(tasa_seguro):
+        return 0.0
+
+    if not np.isclose(tasa_aplica, tasa_seguro):
+        return 0.0
+
+    # Obtener banda ZURICH por modelo
+    modelo = row.get("MODELO", "")
+    tasas_banda = obtener_tasas_validas_zurich(valor, modelo)
+
+    if tasas_banda and np.isclose(tasa_seguro, max(tasas_banda)):
+        return 0.10
+    else:
+        return 0.0
+
         
 def asignar_plan(row):
     valor = row["VALOR TOTAL ASEGURADO"]
@@ -225,8 +246,8 @@ def calcular_cotizacion(df):
     df["TEC"] = df["TASA SEGURO"]
     df["MARK_UP_%"] = df.apply(
         lambda row:
-            obtener_mark_up_mapfre(row) if "MAPFRE" in row["ASEGURADORA"] else
-            0.0,
+            obtener_mark_up_mapfre(row) if "MAPFRE" in row["ASEGURADORA"]
+            else (obtener_mark_up_zurich(row) if "ZURICH" in row["ASEGURADORA"] else 0.0),
         axis=1
     )
 
@@ -261,7 +282,7 @@ def calcular_cotizacion(df):
     df["IMP_SUPER"] = df["PRIMA_VEHICULOS"] * 0.035
     df["IMP_CAMPESINO"] = df["PRIMA_VEHICULOS"] * 0.005
     df["DERECHO_EMISION"] = np.where(
-        df["ASEGURADORA"] == "ZURICH",
+        df["ASEGURADORA"].str.upper().str.contains("ZURICH"),
         0.45,
         df["PRIMA_VEHICULOS"].apply(lambda x: derecho_emision(x) if pd.notnull(x) else np.nan)
     )
