@@ -197,22 +197,22 @@ def asignar_plan(row):
     elif "MAPFRE" in aseguradora:
         tipo = clasificar_tipo_vehiculo_mapfre_por_tasa(row.get("CIUDAD", ""), row["TASA SEGURO"])
         if tipo == "PESADOS":
-            return "VEHICULO PESADO - 4428"
+            return "VEHICULO PESADO"
         elif tipo == "CAMIONETAS":
             if valor <= 40000:
-                return "PICK UP Entre $20.001 a $40.000 - 4428"
+                return "PICK UP Entre $20.001 a $40.000"
             else:
-                return "PICK UP Mayores a $40.001 - 4426"
+                return "PICK UP Mayores a $40.001"
         elif valor <= 20000:
-            return "Menores o igual a $20.000 - 4428"
+            return "Menores o igual a $20.000 "
         elif valor <= 30000:
-            return "Entre $20.001 a $30.000 - 4428"
+            return "Entre $20.001 a $30.000"
         elif valor <= 40000:
-            return "Entre $30.001 a $40.000 - 4428"
+            return "Entre $30.001 a $40.000"
         elif valor <= 60000:
-            return "Entre $40.001 a $60.000 - 4428"
+            return "Entre $40.001 a $60.000"
         else:
-            return "Mayores a $60.001 - 4428"
+            return "Mayores a $60.001"
     
     elif "AIG" in aseguradora:
         if valor <= 20000:
