@@ -305,8 +305,6 @@ if archivo:
     st.dataframe(resultado.head(50))
     # Suponiendo que ya tienes tu DataFrame llamado 'resultado'
     if not resultado.empty:
-        df["DERECHO_EMISION"] = np.where(
-    
         # Crear buffer de memoria
         output = io.BytesIO()
     
