@@ -270,17 +270,37 @@ def tipo_identificacion(valor):
         else:
             return "CI"  # Asumimos que es CI si es muy corto también
     else:
-        return "PASAPORTE"    
-# --- FUNCION PRINCIPAL DE COTIZACION ---
+        return "PASAPORTE"  
+
+df_dict = pd.read_csv("nombres_genero_ecuador.csv")
+diccionario_genero = dict(zip(df_dict["NOMBRE"], df_dict["GENERO"]))
+
+def inferir_genero(nombre1):
+    if not isinstance(nombre1, str):
+        return ""
+    nombre = nombre1.strip().upper().split()[0]
+    return diccionario_genero.get(nombre, "FEMENINO" if nombre.endswith("A") else "MASCULINO")
+    
+def clasificar_uso_vehiculo(plan):
+    plan = str(plan).upper()
+    if "TAXI" in plan or "COMERCIAL" in plan:
+        return "PUBLICO"
+    elif "PESADO" in plan:
+        return "TRABAJO"
+    elif "LIVIANO" in plan or "CAMIONETA" in plan or "PICK UP" in plan:
+        return "PARTICULAR"
+    else:
+        return "PARTICULAR"  # valor por defecto
+
 def calcular_cotizacion(df):
     
     df = df.copy()
     df = df.reset_index(drop=True)
-    df["ID INSURATLAN"] = df.index + 5000
+    df["ID INSURATLAN"] = df.index + 50000
     
     # FECH: igual a FECHA LIQ EN ARQUIVO (asegúrate que esa columna exista en tu archivo)
     df["FECHA"] = df["Fecha Liq"]
-
+    df["NÚMERO CERTIFICADO"] = df[No.OPERACION]
     nombres_df = df["ASEGURADO"].apply(dividir_nombres)
     df = pd.concat([df, nombres_df], axis=1)
     df["VALOR TOTAL ASEGURADO"] = pd.to_numeric(df["VALOR TOTAL ASEGURADO"], errors='coerce')
@@ -340,12 +360,10 @@ def calcular_cotizacion(df):
     from datetime import timedelta
 
     # 1. GENERO por inferencia básica del nombre (no 100% precisa)
-    df["GENERO"] = df["NOMBRE1"].str.upper().apply(
-        lambda x: "MASCULINO" if isinstance(x, str) and x[-1] != "A" else "FEMENINO"
-    )
-
+    df["GENERO"] = df["NOMBRE1"].apply(inferir_genero)
     # 2. OBSERVACION
     df["OBSERVACIÓN"] = df["OBSERVACIONES"]
+    df[""] = df[""]
 
     # 3. FECHA VIGENCIA
     df["FECHA VIGENCIA"] = pd.to_datetime(df["FECHA DE SOLICITUD/ INICIO DE VIGENCIA"], errors="coerce")
@@ -388,7 +406,7 @@ def calcular_cotizacion(df):
 
     # 11. ESTADO POLIZA
     df["ESTADO PÓLIZA"] = "POLIZA CREADA"
-
+    df["USO VEHÍCULO"] = df["PLAN"].apply(clasificar_uso_vehiculo)
     # 12. Columnas vacías
     df["NÚMERO PÓLIZA VEHÍCULOS"] = ""
     df["NÚMERO ENDOSO VEHÍCULOS"] = ""
