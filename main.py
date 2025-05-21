@@ -260,7 +260,6 @@ def calcular_cotizacion(df):
     # Impuestos
     df["IMP_SUPER"] = df["PRIMA_VEHICULOS"] * 0.035
     df["IMP_CAMPESINO"] = df["PRIMA_VEHICULOS"] * 0.005
-    df["DERECHO_EMISION"] = df["PRIMA_VEHICULOS"].apply(lambda x: derecho_emision(x) if pd.notnull(x) else np.nan)
     df["DERECHO_EMISION"] = np.where(
         df["ASEGURADORA"] == "ZURICH",
         0.45,
