@@ -439,7 +439,7 @@ def calcular_cotizacion(df):
 def reorganizar_columnas_salida(df: pd.DataFrame) -> pd.DataFrame:
     # Lista organizada de columnas de salida
     columnas_ordenadas = [
-        "ID INSURATAN", "FECHA", "TASA SEGURO", "NÚMERO RENOVACIÓN", "TIPO IDENTIFICACIÓN", "NÚMERO IDENTIFICACIÓN",
+        "ID INSURATLAN", "FECHA", "TASA SEGURO", "NÚMERO RENOVACIÓN", "TIPO IDENTIFICACIÓN", "NÚMERO IDENTIFICACIÓN",
         "NOMBRE1", "NOMBRE2", "APELLIDO1", "APELLIDO2", "NOMBRE COMPLETO", "GENERO", "ESTADO CIVIL",
         "CIUDAD CLIENTE", "DIRECCION", "TELEFONO",
         "FECHA NACIMIENTO", "CORREO ELECTRONICO", "OBSERVACIÓN",
