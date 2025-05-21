@@ -245,8 +245,32 @@ def asignar_plan(row):
             return "ENTRE 45,01K - 50K"
         else:
             return "MAYORES A 50,001K"
-    
+ 
+def dividir_nombres(nombre_completo):
+    partes = str(nombre_completo).strip().split()
+    # Aseguramos mínimo 4 palabras para evitar errores
+    while len(partes) < 4:
+        partes.append("")
+    return pd.Series({
+        "APELLIDO1": partes[0],
+        "APELLIDO2": partes[1],
+        "NOMBRE1": partes[2],
+        "NOMBRE2": partes[3]
+    })   
     return ""
+def tipo_identificacion(valor):
+    if pd.isna(valor):
+        return ""
+    valor_str = str(valor).strip()
+    if valor_str.isdigit():
+        if len(valor_str) in [9, 10]:
+            return "CI"
+        elif len(valor_str) > 10:
+            return "RUC"
+        else:
+            return "CI"  # Asumimos que es CI si es muy corto también
+    else:
+        return "PASAPORTE"    
 # --- FUNCION PRINCIPAL DE COTIZACION ---
 def calcular_cotizacion(df):
     
@@ -256,37 +280,7 @@ def calcular_cotizacion(df):
     
     # FECH: igual a FECHA LIQ EN ARQUIVO (asegúrate que esa columna exista en tu archivo)
     df["FECH"] = df["Fecha Liq"]
-    
-    # TIPO IDENTIFICACION basado en NUMERO IDENTIFICACION
-    def tipo_identificacion(valor):
-        if pd.isna(valor):
-            return ""
-        valor_str = str(valor).strip()
-        if valor_str.isdigit():
-            if len(valor_str) in [9, 10]:
-                return "CI"
-            elif len(valor_str) > 10:
-                return "RUC"
-            else:
-                return "CI"  # Asumimos que es CI si es muy corto también
-        else:
-            return "PASAPORTE"
-    
-    df["TIPO IDENTIFICACION"] = df["IDENTIFICACION"].apply(tipo_identificacion)
-    
-    # NOMBRE1, NOMBRE2, APELLIDO1, APELLIDO2 desde ASEGURADO
-    def dividir_nombres(nombre_completo):
-        partes = str(nombre_completo).strip().split()
-        # Aseguramos mínimo 4 palabras para evitar errores
-        while len(partes) < 4:
-            partes.append("")
-        return pd.Series({
-            "APELLIDO1": partes[0],
-            "APELLIDO2": partes[1],
-            "NOMBRE1": partes[2],
-            "NOMBRE2": partes[3]
-        })
-    
+
     nombres_df = df["ASEGURADO"].apply(dividir_nombres)
     df = pd.concat([df, nombres_df], axis=1)
     df["VALOR TOTAL ASEGURADO"] = pd.to_numeric(df["VALOR TOTAL ASEGURADO"], errors='coerce')
@@ -342,8 +336,7 @@ def calcular_cotizacion(df):
     df["IVA"] = df["SUBTOTAL"] * 0.15
     df["TOTAL"] = df["SUBTOTAL"] + df["IVA"]
     df["PLAN"] = df.apply(asignar_plan, axis=1)
-    df["TIPO IDENTIFICACION"] = df["NUMERO IDENTIFICACION"].apply(tipo_identificacion)
-
+    df["TIPO IDENTIFICACION"] = df["IDENTIFICACION"].apply(tipo_identificacion)
 
     return df
 
