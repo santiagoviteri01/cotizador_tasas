@@ -161,48 +161,53 @@ def obtener_mark_up_mapfre(row):
         return 0.0
 
 # --- FUNCION PRINCIPAL DE COTIZACION ---
-def calcular_cotizacion(df, aseguradora):
+def calcular_cotizacion(df):
     df = df.copy()
     df["VALOR TOTAL ASEGURADO"] = pd.to_numeric(df["VALOR TOTAL ASEGURADO"], errors='coerce')
     df["TASA APLICADA"] = pd.to_numeric(df["TASA APLICADA"], errors='coerce')
     df["TASA SEGURO"] = pd.to_numeric(df["TASA SEGURO"], errors='coerce')
+    df["ASEGURADORA"] = df["ASEGURADORA"].str.upper().str.strip()
 
-    if aseguradora == "MAPFRE":
-        df["TEC"] = df["TASA SEGURO"]
-        df["MARK_UP_%"] = df.apply(obtener_mark_up_mapfre, axis=1)
-        com_pct = 0.23
-    elif aseguradora == "AIG":
-        df["TEC"] = df["TASA SEGURO"]
-        df["MARK_UP_%"] = 0.0
-        com_pct = 0.25
-    elif aseguradora == "ZURICH":
-        df["TEC"] = df["TASA SEGURO"]
-        df["MARK_UP_%"] = 0.10 if np.isclose(df["TASA APLICADA"], df["TASA SEGURO"]).all() else 0.0
-        com_pct = 0.24
-    else:
-        st.error("Aseguradora no reconocida")
-        return df
+    # TEC y MARK UP por aseguradora
+    df["TEC"] = df["TASA SEGURO"]
+    df["MARK_UP_%"] = df.apply(
+        lambda row:
+            obtener_mark_up_mapfre(row) if "MAPFRE" in row["ASEGURADORA"] else
+            0.0,
+        axis=1
+    )
 
-    df["TASA_SEGURA_VALIDA"] = df.apply(lambda row: validar_tasa_seguro(row, aseguradora), axis=1)
+    # Comisión por aseguradora
+    df["COM_PCT"] = df["ASEGURADORA"].map({
+        "MAPFRE": 0.23,
+        "AIG": 0.25,
+        "ZURICH": 0.24
+    })
 
+    # Validación de tasa seguro según aseguradora
+    df["TASA_SEGURA_VALIDA"] = df.apply(
+        lambda row: validar_tasa_seguro(row, row["ASEGURADORA"]), axis=1
+    )
+
+    # Cálculo financiero
     df["PRIMA_TECNICA"] = df["VALOR TOTAL ASEGURADO"] * df["TEC"]
-    df["COMISION_TOTAL"] = df["PRIMA_TECNICA"] * com_pct
+    df["COMISION_TOTAL"] = df["PRIMA_TECNICA"] * df["COM_PCT"]
     df["COMISION_LIDERSEG"] = df["COMISION_TOTAL"] * 0.4
     df["COMISION_CANAL"] = df["COMISION_TOTAL"] * 0.4
     df["COMISION_INSURANCE"] = df["COMISION_TOTAL"] * 0.2
     df["VALOR_MARKUP"] = df["VALOR TOTAL ASEGURADO"] * df["TEC"] * df["MARK_UP_%"]
 
+    # Prima vehículos solo si tasa es válida
     df["PRIMA_VEHICULOS"] = np.where(
         df["TASA_SEGURA_VALIDA"],
         df["VALOR TOTAL ASEGURADO"] * df["TASA SEGURO"],
         np.nan
     )
-    
-    # Impuestos solo si la PRIMA_VEHICULOS es válida
+
+    # Impuestos
     df["IMP_SUPER"] = df["PRIMA_VEHICULOS"] * 0.035
     df["IMP_CAMPESINO"] = df["PRIMA_VEHICULOS"] * 0.005
     df["DERECHO_EMISION"] = df["PRIMA_VEHICULOS"].apply(lambda x: derecho_emision(x) if pd.notnull(x) else np.nan)
-    
     df["SUBTOTAL"] = df["PRIMA_VEHICULOS"] + df["IMP_SUPER"] + df["IMP_CAMPESINO"] + df["DERECHO_EMISION"]
     df["IVA"] = df["SUBTOTAL"] * 0.15
     df["TOTAL"] = df["SUBTOTAL"] + df["IVA"]
@@ -214,12 +219,11 @@ st.set_page_config(page_title="Cotizador Crediprime", page_icon="📊")
 st.title("📊 Cotizador Técnico de Seguros - Crediprime")
 
 archivo = st.file_uploader("Carga la base de entrada (.xlsx)", type=["xlsx"])
-aseguradora = st.selectbox("Selecciona la aseguradora", ["MAPFRE", "AIG", "ZURICH"])
 
 if archivo:
     df = pd.read_excel(archivo)
-    resultado = calcular_cotizacion(df, aseguradora)
-    st.success("✅ Cálculos completados para " + aseguradora)
+    resultado = calcular_cotizacion(df)
+    st.success("✅ Cálculos completados)
     st.dataframe(resultado.head(50))
     # Suponiendo que ya tienes tu DataFrame llamado 'resultado'
     if not resultado.empty:
