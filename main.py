@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import io
 
-# --- FUNCIONES DE APOYO ---
 def derecho_emision(prima):
     if prima <= 250:
         return 0.05
@@ -18,6 +17,46 @@ def derecho_emision(prima):
     else:
         return 9
 
+# Clasificación MAPFRE por tasa
+def clasificar_tipo_vehiculo_mapfre_por_tasa(ciudad, tasa_seguro):
+    ciudad = ciudad.upper()
+    tasa_seguro = round(tasa_seguro, 4)
+    if ciudad == "QUITO":
+        if tasa_seguro in [0.0519, 0.0571, 0.0597, 0.0624]: return "TAXIS"
+        if tasa_seguro in [0.0416, 0.0457, 0.0478, 0.0522]: return "PESADOS"
+        if tasa_seguro in [0.0337, 0.0370, 0.0387, 0.0423]: return "CAMIONETAS"
+        if tasa_seguro in [0.0426, 0.0370, 0.0303, 0.0281, 0.0197]: return "LIVIANOS"
+    elif ciudad == "GUAYAQUIL":
+        if tasa_seguro in [0.0540, 0.0594, 0.0621, 0.0645]: return "TAXIS"
+        if tasa_seguro in [0.0447, 0.0491, 0.0514, 0.0562]: return "PESADOS"
+        if tasa_seguro in [0.0349, 0.0384, 0.0401, 0.0430]: return "CAMIONETAS"
+        if tasa_seguro in [0.0442, 0.0384, 0.0314, 0.0291, 0.0197]: return "LIVIANOS"
+    else:
+        if tasa_seguro in [0.0561, 0.0617, 0.0645]: return "TAXIS"
+        if tasa_seguro in [0.0488, 0.0537, 0.0562]: return "PESADOS"
+        if tasa_seguro in [0.0374, 0.0411, 0.0430]: return "CAMIONETAS"
+        if tasa_seguro in [0.0478, 0.0416, 0.0343, 0.0312, 0.0239]: return "LIVIANOS"
+    return "LIVIANOS"
+
+# Clasificación AIG por tasa
+def clasificar_tipo_vehiculo_aig_por_tasa(tasa_seguro):
+    tasa_seguro = round(tasa_seguro, 4)
+    if tasa_seguro == 0.06:
+        return "PESADOS"
+    elif tasa_seguro in [0.0570, 0.0633]:
+        return "CAMIONETAS"
+    else:
+        return "LIVIANOS"
+
+# Clasificación ZURICH por tasa
+def clasificar_tipo_vehiculo_zurich_por_tasa(tasa_seguro):
+    tasa_seguro = round(tasa_seguro, 4)
+    if tasa_seguro in [0.0570, 0.0633]:
+        return "CAMIONETAS"
+    else:
+        return "LIVIANOS"
+
+# Bandas MAPFRE
 def obtener_tasas_validas_mapfre(ciudad, tipo, valor):
     ciudad = ciudad.upper()
     tipo = tipo.upper()
@@ -48,66 +87,35 @@ def obtener_tasas_validas_mapfre(ciudad, tipo, valor):
             return tasas
     return []
 
-def obtener_tasas_validas_aig(valor, uso, modelo):
-    uso = uso.upper()
-    modelo = modelo.upper()
-    if "PESADO" in uso or "COMERCIAL" in uso:
-        return [0.06]
-    elif "CAMIONETA" in modelo:
-        return [0.0570, 0.0633]
-    else:
-        bandas = [
-            (20000, [0.0470, 0.0517, 0.0541]), (25000, [0.0450, 0.0495, 0.0518]), (30000, [0.0410, 0.0451, 0.0472]),
-            (35000, [0.0380, 0.0418, 0.0437]), (40000, [0.0360, 0.0396, 0.0414]), (45000, [0.0340, 0.0374, 0.0391]),
-            (50000, [0.0290, 0.0319, 0.0334]), (float("inf"), [0.0270, 0.0297, 0.0311])
-        ]
-        for limite, tasas in bandas:
-            if valor <= limite:
-                return tasas
-    return []
-
-def obtener_tasas_validas_zurich(valor, modelo):
-    modelo = modelo.upper()
-    if "CAMIONETA" in modelo:
-        return [0.0570, 0.0633]
-    else:
-        bandas = [
-            (20000, [0.0540, 0.0600]), (30000, [0.0400, 0.0444]), (40000, [0.0310, 0.0344]), (float("inf"), [0.0290, 0.0322])
-        ]
-        for limite, tasas in bandas:
-            if valor <= limite:
-                return tasas
-    return []
-
+# Validación de tasa seguro
 def validar_tasa_seguro(row, aseguradora):
     valor = row["VALOR TOTAL ASEGURADO"]
     tasa_seguro = row["TASA SEGURO"]
     if pd.isna(valor) or pd.isna(tasa_seguro):
         return False
+    tasa_seguro = round(tasa_seguro, 4)
 
     if aseguradora == "MAPFRE":
-        tasas_validas = obtener_tasas_validas_mapfre(row.get("CIUDAD", ""), row.get("TIPO DE USO", ""), valor)
-        return any(np.isclose(tasa_seguro, t) for t in tasas_validas)
-
+        tipo = clasificar_tipo_vehiculo_mapfre_por_tasa(row.get("CIUDAD", ""), tasa_seguro)
+        tasas_validas = obtener_tasas_validas_mapfre(row.get("CIUDAD", ""), tipo, valor)
     elif aseguradora == "AIG":
-        tasas_validas = obtener_tasas_validas_aig(valor, row.get("TIPO DE USO", ""), row.get("MODELO", ""))
-        return any(np.isclose(tasa_seguro, t) for t in tasas_validas)
-
+        tipo = clasificar_tipo_vehiculo_aig_por_tasa(tasa_seguro)
+        tasas_validas = obtener_tasas_validas_aig(valor, tipo, row.get("MODELO", ""))
     elif aseguradora == "ZURICH":
-        tasas_validas = obtener_tasas_validas_zurich(valor, row.get("MODELO", ""))
-        return any(np.isclose(tasa_seguro, t) for t in tasas_validas)
+        tipo = clasificar_tipo_vehiculo_zurich_por_tasa(tasa_seguro)
+        tasas_validas = obtener_tasas_validas_zurich(valor, tipo)
+    else:
+        return True
 
-    return True
+    return any(np.isclose(tasa_seguro, t) for t in tasas_validas)
 
-
-
-# Evita error si lista está vacía
+# Cálculo de mark up MAPFRE
 def obtener_mark_up_mapfre(row):
     ciudad = row.get("CIUDAD", "")
-    tipo = row.get("TIPO DE USO", "")
+    tasa_seguro = row["TASA SEGURO"]
+    tipo = clasificar_tipo_vehiculo_mapfre_por_tasa(ciudad, tasa_seguro)
     valor = row["VALOR TOTAL ASEGURADO"]
     tasa_aplicada = row["TASA APLICADA"]
-    tasa_seguro = row["TASA SEGURO"]
     try:
         banda = obtener_tasas_validas_mapfre(ciudad, tipo, valor)
         max_tasa = max(banda) if banda else np.nan
