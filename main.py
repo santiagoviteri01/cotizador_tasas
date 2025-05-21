@@ -223,7 +223,7 @@ archivo = st.file_uploader("Carga la base de entrada (.xlsx)", type=["xlsx"])
 if archivo:
     df = pd.read_excel(archivo)
     resultado = calcular_cotizacion(df)
-    st.success("✅ Cálculos completados)
+    st.success("✅ Cálculos completados")
     st.dataframe(resultado.head(50))
     # Suponiendo que ya tienes tu DataFrame llamado 'resultado'
     if not resultado.empty:
