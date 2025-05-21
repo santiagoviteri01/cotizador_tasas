@@ -426,7 +426,7 @@ def calcular_cotizacion(df):
     df["USO VEHÍCULO"] = df["PLAN"].apply(clasificar_uso_vehiculo)
     df["VALOR ASEGURADO"]=df["VALOR TOTAL ASEGURADO"]
     df["ACCESORIOS"]=df["DETALLE DE EXTRAS"]
-    df["TOTAL PAGAR"]=df["PRIMA TOTAL DESGRAVAMEN"]
+    df["TOTAL PAGAR"]=df["PRIMA TOTAL VEHÍCULOS"]
     df["CUOTA MENSUAL"]=df["CUOTA MENSUAL VEHÍCULOS"]
     df["DÉBITO (MEDIO DE PAGO)"]= "Tabla de Amortización"
     # 12. Columnas vacías
