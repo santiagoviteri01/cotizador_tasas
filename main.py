@@ -363,7 +363,6 @@ def calcular_cotizacion(df):
     df["GENERO"] = df["NOMBRE1"].apply(inferir_genero)
     # 2. OBSERVACION
     df["OBSERVACIÓN"] = df["OBSERVACIONES"]
-    df[""] = df[""]
 
     # 3. FECHA VIGENCIA
     df["FECHA VIGENCIA"] = pd.to_datetime(df["FECHA DE SOLICITUD/ INICIO DE VIGENCIA"], errors="coerce")
