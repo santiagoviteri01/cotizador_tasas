@@ -302,6 +302,7 @@ def calcular_cotizacion(df):
     df["FECHA"] = df["Fecha Liq"]
     df["NÚMERO CERTIFICADO"] = df["No.OPERACION"]
     nombres_df = df["ASEGURADO"].apply(dividir_nombres)
+    df["NOMBRE COMPLETO"]= df["ASEGURADO"]
     df = pd.concat([df, nombres_df], axis=1)
     df["VALOR TOTAL ASEGURADO"] = pd.to_numeric(df["VALOR TOTAL ASEGURADO"], errors='coerce')
     df["TASA APLICADA"] = pd.to_numeric(df["TASA APLICADA"], errors='coerce')
@@ -332,31 +333,34 @@ def calcular_cotizacion(df):
     # Cálculo financiero
     df["PRIMA_TECNICA"] = df["VALOR TOTAL ASEGURADO"] * df["TEC"]
     df["COMISION_TOTAL"] = df["PRIMA_TECNICA"] * df["COM_PCT"]
-    df["COMISION_LIDERSEG"] = df["COMISION_TOTAL"] * 0.4
-    df["COMISION_CANAL"] = df["COMISION_TOTAL"] * 0.4
-    df["COMISION_INSURANCE"] = df["COMISION_TOTAL"] * 0.2
-    df["VALOR_MARKUP"] = df["VALOR TOTAL ASEGURADO"] * df["TEC"] * df["MARK_UP_%"]
+    df["COMISION LIDERSEG"] = df["COMISION_TOTAL"] * 0.4
+    df["COMISION CANAL"] = df["COMISION_TOTAL"] * 0.4
+    df["COMISION INSURANCE"] = df["COMISION_TOTAL"] * 0.2
+    df["VALOR MARKUP"] = df["VALOR TOTAL ASEGURADO"] * df["TEC"] * df["MARK_UP_%"]
 
     # Prima vehículos solo si tasa es válida
-    df["PRIMA_VEHICULOS"] = np.where(
+    df["PRIMA VEHICULOS"] = np.where(
         df["TASA_SEGURA_VALIDA"],
         df["VALOR TOTAL ASEGURADO"] * df["TASA SEGURO"],
         np.nan
     )
+    df["COMISIÓN PRIMA VEHÍCULOS"]=df["COMISION_TOTAL"]
+    df["COMISIÓN TOTAL"]=df["COMISION_TOTAL"]
 
     # Impuestos
-    df["IMP_SUPER"] = df["PRIMA_VEHICULOS"] * 0.035
-    df["IMP_CAMPESINO"] = df["PRIMA_VEHICULOS"] * 0.005
-    df["DERECHO_EMISION"] = np.where(
+    df["IMPUESTO VEHÍCULOS SUPER DE BANCOS"] = df["PRIMA VEHICULOS"] * 0.035
+    df["IMPUESTO VEHÍCULOS SEGURO CAMPESINO"] = df["PRIMA VEHICULOS"] * 0.005
+    df["IMPUESTO VEHÍCULOS EMISIÓN"] = np.where(
         df["ASEGURADORA"].str.upper().str.contains("ZURICH"),
         0.45,
-        df["PRIMA_VEHICULOS"].apply(lambda x: derecho_emision(x) if pd.notnull(x) else np.nan)
+        df["PRIMA VEHICULOS"].apply(lambda x: derecho_emision(x) if pd.notnull(x) else np.nan)
     )
     df["SUBTOTAL"] = df["PRIMA_VEHICULOS"] + df["IMP_SUPER"] + df["IMP_CAMPESINO"] + df["DERECHO_EMISION"]
-    df["IVA"] = df["SUBTOTAL"] * 0.15
-    df["TOTAL"] = df["SUBTOTAL"] + df["IVA"]
+    df["IMPUESTO VEHÍCULOS IVA"] = df["SUBTOTAL"] * 0.15
+    df["PRIMA TOTAL VEHÍCULOS"] = df["SUBTOTAL"] + df["IMPUESTO VEHÍCULOS IVA"]
     df["PLAN"] = df.apply(asignar_plan, axis=1)
     df["TIPO IDENTIFICACION"] = df["IDENTIFICACION"].apply(tipo_identificacion)
+    df["NÚMERO IDENTIFICACIÓN"]= df["IDENTIFICACION"]
     from datetime import timedelta
 
     # 1. GENERO por inferencia básica del nombre (no 100% precisa)
@@ -366,9 +370,12 @@ def calcular_cotizacion(df):
 
     # 3. FECHA VIGENCIA
     df["FECHA VIGENCIA"] = pd.to_datetime(df["FECHA DE SOLICITUD/ INICIO DE VIGENCIA"], errors="coerce")
-
+    df["MES VIGENCIA"] = df["FECHA VIGENCIA"].dt.month
+    df["ANO VIGENCIA"] = df["FECHA VIGENCIA"].dt.year
+    df["POLIZA MAESTRA"]= ""
     # 4. FECHA EXPIRACION = FECHA VIGENCIA + 1 año
     df["FECHA EXPIRACIÓN"] = df["FECHA VIGENCIA"] + pd.DateOffset(years=1)
+    df["NÚMERO RENOVACIÓN"] = 0
 
     # 5. DÍAS VIGENCIA = diferencia en días
     df["DÍAS VIGENCIA"] = (df["FECHA EXPIRACIÓN"] - df["FECHA VIGENCIA"]).dt.days
@@ -383,17 +390,22 @@ def calcular_cotizacion(df):
 
     # 7. CANAL, VENDEDOR, FORMA PAGO
     df["CANAL"] = "CREDIPRIME"
-    df["VENDEDOR"] = "Santiago Viteri"
+    df["VENDEDOR"] = "SANTIAGO VITERI PUYOL"
     df["FORMA PAGO"] = "CREDITO"
     df["TIPO PRIMA"]= "Variable"
+    df["USUARIO CREADOR PÓLIZA"] = "SANTIAGO VITERI PUYOL"
 
     # 8. MESES PAGO
-    df["MESES PAGO"] = df["ASEGURADORA"].apply(lambda x: 12 if "ZURICH" in x or "AIG" in x else 10)
+    df["MESES PAGO"] = df["ASEGURADORA"].apply(lambda x: 10 if "MAPFRE" in x else 10)
 
     # 9. ORIGEN DE VENTA
     df["ORIGEN DE VENTA"] = df["CONCESIONARIO"].apply(
-        lambda x: "SEMINUEVO" if isinstance(x, str) and "1001 AUTOS" in x.upper() else "AGENCIA NUEVO"
+        lambda x: "AGENCIA SEMINUEVO" if isinstance(x, str) and "1001 AUTOS" in x.upper() else "AGENCIA NUEVO"
     )
+    df["ESTADO VEHÍCULO"] = df["CONCESIONARIO"].apply(
+        lambda x: "SEMINUEVO" if isinstance(x, str) and "1001 AUTOS" in x.upper() else "NUEVO"
+    )
+    df["AGENCIA"]=df["CONCESIONARIO"]
 
     # 10. TIPO PLACA
     import re
@@ -401,35 +413,76 @@ def calcular_cotizacion(df):
         if isinstance(placa, str) and re.fullmatch(r"[A-Z]{3}[0-9]{3,4}", placa.replace(" ", "")):
             return "PLACA"
         return "RAM"
+    
     df["TIPO PLACA"] = df["PLACA / RAMV"].apply(tipo_placa)
-
+    df["PLACA"]=df["PLACA / RAMV"]
+    df["CIUDAD CLIENTE"] =df["CIUDAD"]
+    df["SEGURO DEDUCIBLE"]=0
+    df["NÚMERO IDENTIFICACIÓN VENDEDOR"]=060350371
+    df["NÚMERO IDENTIFICACIÓN CREADOR"]=060350371
     # 11. ESTADO POLIZA
     df["ESTADO PÓLIZA"] = "POLIZA CREADA"
+    df["FECHA PAGO"] = df["FECHA VIGENCIA"] + pd.DateOffset(months=1)
     df["USO VEHÍCULO"] = df["PLAN"].apply(clasificar_uso_vehiculo)
+    df["VALOR ASEGURADO"]=df["VALOR TOTAL ASEGURADO"]
+    df["ACCESORIOS"]=df["DETALLE DE EXTRAS"]
+    df["TOTAL PAGAR"]=df["PRIMA TOTAL DESGRAVAMEN"]
+    df["CUOTA MENSUAL"]=df["CUOTA MENSUAL VEHÍCULOS"]
+    df["DÉBITO (MEDIO DE PAGO)"]= "Tabla de Amortización"
     # 12. Columnas vacías
     df["NÚMERO PÓLIZA VEHÍCULOS"] = ""
     df["NÚMERO ENDOSO VEHÍCULOS"] = ""
     df["NÚMERO FACTURA VEHÍCULOS"] = ""
     return df
+def reorganizar_columnas_salida(df: pd.DataFrame) -> pd.DataFrame:
+    # Lista organizada de columnas de salida
+    columnas_ordenadas = [
+        "ID_INSURATAN", "FECHA", "TASA SEGURO", "NÚMERO RENOVACIÓN", "TIPO IDENTIFICACIÓN", "NÚMERO IDENTIFICACIÓN",
+        "NOMBRE1", "NOMBRE2", "APELLIDO1", "APELLIDO2", "NOMBRE COMPLETO", "GENERO", "ESTADO CIVIL",
+        "CIUDAD CLIENTE", "DIRECCIÓN", "TELÉFONO",
+        "FECHA NACIMIENTO", "CORREO ELECTRÓNICO", "OBSERVACIÓN",
+        "POLIZA MAESTRA", "NÚMERO CERTIFICADO", "FECHA VIGENCIA", "MES VIGENCIA", "ANO VIGENCIA",
+        "FECHA EXPIRACIÓN", "DÍAS VIGENCIA", "DÍAS EXTRA", "USO VEHÍCULO", "ASEGURADORA", "PLAN",
+        "SEGURO DEDUCIBLE", "CANAL", "CONCESIONARIO", "VENDEDOR", "NÚMERO IDENTIFICACIÓN VENDEDOR",
+        "AGENCIA", "ORIGEN DE VENTA", "FORMA PAGO", "MESES PAGO", "MARCA", "MODELO", "MOTOR", "CHASIS",
+        "COLOR", "AÑO", "TIPO PLACA", "PLACA", "ACCESORIOS", "ESTADO VEHÍCULO",
+        "BENEFICIARIO ACREEDOR", "VALOR ASEGURADO", "VALOR FINANCIADO", "PRIMA VEHÍCULOS",
+        "IMPUESTO VEHÍCULOS SUPER DE BANCOS", "IMPUESTO VEHÍCULOS SEGURO CAMPESINO",
+        "IMPUESTO VEHÍCULOS EMISIÓN", "IMPUESTO VEHÍCULOS IVA", "PRIMA TOTAL VEHÍCULOS",
+        "CUOTA MENSUAL VEHÍCULOS", "PRIMA DESGRAVAMEN", "IMPUESTO DESGRAVAMEN SUPER DE BANCOS",
+        "IMPUESTO DESGRAVAMEN SEGURO CAMPESINO", "IMPUESTO DESGRAVAMEN EMISIÓN", "IMPUESTO DESGRAVAMEN IVA",
+        "PRIMA TOTAL DESGRAVAMEN", "CUOTA MENSUAL DESGRAVAMEN", "TIPO PRIMA", "TIPO DESGRAVAMEN",
+        "TOTAL PAGAR", "CUOTA MENSUAL", "DÉBITO (MEDIO DE PAGO)",
+        "FECHA PAGO", "TASA NOMINAL", "COMISIÓN PRIMA VEHÍCULOS", "COMISION CANAL",
+        "COMISION LIDERSEG", "COMISION INSURANCE", "COMISIÓN TOTAL",
+        "VALOR MARKUP", "ESTADO PÓLIZA", "USUARIO CREADOR PÓLIZA", "NÚMERO IDENTIFICACIÓN CREADOR",
+        "NÚMERO PÓLIZA VEHÍCULOS", "NÚMERO ENDOSO VEHÍCULOS", "NÚMERO FACTURA VEHÍCULOS"
+    ] 
+    # Añadir las columnas que falten con NaN
+    for col in columnas_ordenadas:
+        if col not in df.columns:
+            df[col] = pd.NA
 
+    return df[columnas_ordenadas]
 # --- APP STREAMLIT ---
-st.set_page_config(page_title="Cotizador Crediprime", page_icon="📊")
-st.title("📊 Cotizador Técnico de Seguros - Crediprime")
+st.set_page_config(page_title="Cotizador Crediprime")
+st.title("Cotizador Crediprime")
 
 archivo = st.file_uploader("Carga la base de entrada (.xlsx)", type=["xlsx"])
 
 if archivo:
     df = pd.read_excel(archivo)
     resultado = calcular_cotizacion(df)
+    df_ordenado = reorganizar_columnas_salida(resultado)
     st.success("✅ Cálculos completados")
-    st.dataframe(resultado.head(50))
+    st.dataframe(df_ordenado.head(50))
     # Suponiendo que ya tienes tu DataFrame llamado 'resultado'
-    if not resultado.empty:
+    if not df_ordenado.empty:
         # Crear buffer de memoria
         output = io.BytesIO()
     
         # Exportar el DataFrame al buffer
-        resultado.to_excel(output, index=False, engine='openpyxl')
+        df_ordenado.to_excel(output, index=False, engine='openpyxl')
     
         # Mover el puntero al inicio del archivo
         output.seek(0)
