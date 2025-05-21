@@ -159,7 +159,60 @@ def obtener_mark_up_mapfre(row):
             return 0.0
     except:
         return 0.0
+        
+def asignar_plan(row):
+    valor = row["VALOR TOTAL ASEGURADO"]
+    aseguradora = row["ASEGURADORA"].upper()
+    
+    if "ZURICH" in aseguradora:
+        if valor <= 20000:
+            return "HASTA 20K"
+        elif 20000 < valor <= 30000:
+            return "ENTRE 20,01K - 30K"
+        elif 30000 < valor <= 40000:
+            return "ENTRE 30,01K - 40K"
+        else:
+            return "MAYORES A 40,01K"
 
+    elif "MAPFRE" in aseguradora:
+        tipo = clasificar_tipo_vehiculo_mapfre_por_tasa(row.get("CIUDAD", ""), row["TASA SEGURO"])
+        if tipo == "PESADOS":
+            return "VEHICULO PESADO - 4428"
+        elif tipo == "CAMIONETAS":
+            if valor <= 40000:
+                return "PICK UP Entre $20.001 a $40.000 - 4428"
+            else:
+                return "PICK UP Mayores a $40.001 - 4426"
+        elif valor <= 20000:
+            return "Menores o igual a $20.000 - 4428"
+        elif valor <= 30000:
+            return "Entre $20.001 a $30.000 - 4428"
+        elif valor <= 40000:
+            return "Entre $30.001 a $40.000 - 4428"
+        elif valor <= 60000:
+            return "Entre $40.001 a $60.000 - 4428"
+        else:
+            return "Mayores a $60.001 - 4428"
+    
+    elif "AIG" in aseguradora:
+        if valor <= 20000:
+            return "HASTA 20K"
+        elif valor <= 25000:
+            return "ENTRE 20,01K - 25K"
+        elif valor <= 30000:
+            return "ENTRE 25,01K - 30K"
+        elif valor <= 35000:
+            return "ENTRE 30,01K - 35K"
+        elif valor <= 40000:
+            return "ENTRE 35,01K - 40K"
+        elif valor <= 45000:
+            return "ENTRE 40,01K - 45K"
+        elif valor <= 50000:
+            return "ENTRE 45,01K - 50K"
+        else:
+            return "MAYORES A 50,001K"
+    
+    return ""
 # --- FUNCION PRINCIPAL DE COTIZACION ---
 def calcular_cotizacion(df):
     df = df.copy()
@@ -208,9 +261,15 @@ def calcular_cotizacion(df):
     df["IMP_SUPER"] = df["PRIMA_VEHICULOS"] * 0.035
     df["IMP_CAMPESINO"] = df["PRIMA_VEHICULOS"] * 0.005
     df["DERECHO_EMISION"] = df["PRIMA_VEHICULOS"].apply(lambda x: derecho_emision(x) if pd.notnull(x) else np.nan)
+    df["DERECHO_EMISION"] = np.where(
+        df["ASEGURADORA"] == "ZURICH",
+        0.45,
+        df["PRIMA_VEHICULOS"].apply(lambda x: derecho_emision(x) if pd.notnull(x) else np.nan)
+    )
     df["SUBTOTAL"] = df["PRIMA_VEHICULOS"] + df["IMP_SUPER"] + df["IMP_CAMPESINO"] + df["DERECHO_EMISION"]
     df["IVA"] = df["SUBTOTAL"] * 0.15
     df["TOTAL"] = df["SUBTOTAL"] + df["IVA"]
+    df["PLAN"] = df.apply(asignar_plan, axis=1)
 
     return df
 
@@ -227,6 +286,8 @@ if archivo:
     st.dataframe(resultado.head(50))
     # Suponiendo que ya tienes tu DataFrame llamado 'resultado'
     if not resultado.empty:
+        df["DERECHO_EMISION"] = np.where(
+    
         # Crear buffer de memoria
         output = io.BytesIO()
     
