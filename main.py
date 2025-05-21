@@ -87,6 +87,37 @@ def obtener_tasas_validas_mapfre(ciudad, tipo, valor):
             return tasas
     return []
 
+def obtener_tasas_validas_aig(valor, uso, modelo):
+    uso = uso.upper()
+    modelo = modelo.upper()
+    if "PESADO" in uso or "COMERCIAL" in uso:
+        return [0.06]
+    elif "CAMIONETA" in modelo:
+        return [0.0570, 0.0633]
+    else:
+        bandas = [
+            (20000, [0.0470, 0.0517, 0.0541]), (25000, [0.0450, 0.0495, 0.0518]), (30000, [0.0410, 0.0451, 0.0472]),
+            (35000, [0.0380, 0.0418, 0.0437]), (40000, [0.0360, 0.0396, 0.0414]), (45000, [0.0340, 0.0374, 0.0391]),
+            (50000, [0.0290, 0.0319, 0.0334]), (float("inf"), [0.0270, 0.0297, 0.0311])
+        ]
+        for limite, tasas in bandas:
+            if valor <= limite:
+                return tasas
+    return []
+
+def obtener_tasas_validas_zurich(valor, modelo):
+    modelo = modelo.upper()
+    if "CAMIONETA" in modelo:
+        return [0.0570, 0.0633]
+    else:
+        bandas = [
+            (20000, [0.0540, 0.0600]), (30000, [0.0400, 0.0444]), (40000, [0.0310, 0.0344]), (float("inf"), [0.0290, 0.0322])
+        ]
+        for limite, tasas in bandas:
+            if valor <= limite:
+                return tasas
+    return []
+
 # Validación de tasa seguro
 def validar_tasa_seguro(row, aseguradora):
     valor = row["VALOR TOTAL ASEGURADO"]
