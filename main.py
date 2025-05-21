@@ -272,7 +272,7 @@ def calcular_cotizacion(df):
         else:
             return "PASAPORTE"
     
-    df["TIPO IDENTIFICACION"] = df["NUMERO IDENTIFICACION"].apply(tipo_identificacion)
+    df["TIPO IDENTIFICACION"] = df["IDENTIFICACION"].apply(tipo_identificacion)
     
     # NOMBRE1, NOMBRE2, APELLIDO1, APELLIDO2 desde ASEGURADO
     def dividir_nombres(nombre_completo):
