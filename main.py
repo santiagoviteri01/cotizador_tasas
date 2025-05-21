@@ -355,7 +355,7 @@ def calcular_cotizacion(df):
         0.45,
         df["PRIMA VEHICULOS"].apply(lambda x: derecho_emision(x) if pd.notnull(x) else np.nan)
     )
-    df["SUBTOTAL"] = df["PRIMA_VEHICULOS"] + df["IMP_SUPER"] + df["IMP_CAMPESINO"] + df["DERECHO_EMISION"]
+    df["SUBTOTAL"] = df["PRIMA VEHICULOS"] + df["IMPUESTO VEHÍCULOS SUPER DE BANCOS"] + df["IMPUESTO VEHÍCULOS SEGURO CAMPESINO"] + df["IMPUESTO VEHÍCULOS EMISIÓN"]
     df["IMPUESTO VEHÍCULOS IVA"] = df["SUBTOTAL"] * 0.15
     df["PRIMA TOTAL VEHÍCULOS"] = df["SUBTOTAL"] + df["IMPUESTO VEHÍCULOS IVA"]
     df["PLAN"] = df.apply(asignar_plan, axis=1)
