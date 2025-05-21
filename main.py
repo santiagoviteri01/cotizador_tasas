@@ -98,6 +98,27 @@ def validar_tasa_seguro(row, aseguradora):
 
     return True
 
+
+
+# Evita error si lista está vacía
+def obtener_mark_up_mapfre(row):
+    ciudad = row.get("CIUDAD", "")
+    tipo = row.get("TIPO DE USO", "")
+    valor = row["VALOR TOTAL ASEGURADO"]
+    tasa_aplicada = row["TASA APLICADA"]
+    tasa_seguro = row["TASA SEGURO"]
+    try:
+        banda = obtener_tasas_validas_mapfre(ciudad, tipo, valor)
+        max_tasa = max(banda) if banda else np.nan
+        if np.isclose(tasa_aplicada, tasa_seguro) and tasa_aplicada < max_tasa:
+            return 0.10
+        elif tasa_seguro < tasa_aplicada:
+            return 0.15
+        else:
+            return 0.0
+    except:
+        return 0.0
+
 # --- FUNCION PRINCIPAL DE COTIZACION ---
 def calcular_cotizacion(df, aseguradora):
     df = df.copy()
@@ -106,8 +127,8 @@ def calcular_cotizacion(df, aseguradora):
     df["TASA SEGURO"] = pd.to_numeric(df["TASA SEGURO"], errors='coerce')
 
     if aseguradora == "MAPFRE":
-        df["TEC"] = df["TASA SEGURO"]  # En MAPFRE se asume como base
-        df["MARK_UP_%"] = df.apply(lambda row: 0.10 if np.isclose(row["TASA APLICADA"], row["TASA SEGURO"]) and row["TASA APLICADA"] < max(obtener_tasas_validas_mapfre(row.get("CIUDAD", ""), row.get("TIPO DE USO", ""), row["VALOR TOTAL ASEGURADO"])) else (0.15 if row["TASA SEGURO"] < row["TASA APLICADA"] else 0.0), axis=1)
+        df["TEC"] = df["TASA SEGURO"]
+        df["MARK_UP_%"] = df.apply(obtener_mark_up_mapfre, axis=1)
         com_pct = 0.23
     elif aseguradora == "AIG":
         df["TEC"] = df["TASA SEGURO"]
@@ -159,3 +180,4 @@ if archivo:
         file_name=f"cotizacion_{aseguradora.lower()}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
