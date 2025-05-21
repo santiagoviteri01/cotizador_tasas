@@ -97,6 +97,7 @@ def validar_tasa_seguro(row, aseguradora):
 
     if aseguradora == "MAPFRE":
         tipo = clasificar_tipo_vehiculo_mapfre_por_tasa(row.get("CIUDAD", ""), tasa_seguro)
+        st.write(tipo)
         tasas_validas = obtener_tasas_validas_mapfre(row.get("CIUDAD", ""), tipo, valor)
     elif aseguradora == "AIG":
         tipo = clasificar_tipo_vehiculo_aig_por_tasa(tasa_seguro)
