@@ -192,5 +192,4 @@ if archivo:
         )
     else:
         st.warning("⚠️ No hay resultados para descargar.")
-    )
 
