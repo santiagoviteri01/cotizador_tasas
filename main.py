@@ -172,12 +172,25 @@ if archivo:
     resultado = calcular_cotizacion(df, aseguradora)
     st.success("✅ Cálculos completados para " + aseguradora)
     st.dataframe(resultado.head(50))
-
-    excel = resultado.to_excel(index=False, engine='openpyxl')
-    st.download_button(
-        label="📥 Descargar resultados en Excel",
-        data=excel,
-        file_name=f"cotizacion_{aseguradora.lower()}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    # Suponiendo que ya tienes tu DataFrame llamado 'resultado'
+    if not resultado.empty:
+        # Crear buffer de memoria
+        output = io.BytesIO()
+    
+        # Exportar el DataFrame al buffer
+        resultado.to_excel(output, index=False, engine='openpyxl')
+    
+        # Mover el puntero al inicio del archivo
+        output.seek(0)
+    
+        # Mostrar botón de descarga
+        st.download_button(
+            label="📥 Descargar Excel",
+            data=output,
+            file_name="resultado_cotizacion.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    else:
+        st.warning("⚠️ No hay resultados para descargar.")
     )
 
