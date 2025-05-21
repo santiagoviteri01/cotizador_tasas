@@ -279,7 +279,7 @@ def calcular_cotizacion(df):
     df["ID INSURATLAN"] = df.index + 5000
     
     # FECH: igual a FECHA LIQ EN ARQUIVO (asegúrate que esa columna exista en tu archivo)
-    df["FECH"] = df["Fecha Liq"]
+    df["FECHA"] = df["Fecha Liq"]
 
     nombres_df = df["ASEGURADO"].apply(dividir_nombres)
     df = pd.concat([df, nombres_df], axis=1)
@@ -337,7 +337,62 @@ def calcular_cotizacion(df):
     df["TOTAL"] = df["SUBTOTAL"] + df["IVA"]
     df["PLAN"] = df.apply(asignar_plan, axis=1)
     df["TIPO IDENTIFICACION"] = df["IDENTIFICACION"].apply(tipo_identificacion)
+    from datetime import timedelta
 
+    # 1. GENERO por inferencia básica del nombre (no 100% precisa)
+    df["GENERO"] = df["NOMBRE1"].str.upper().apply(
+        lambda x: "MASCULINO" if isinstance(x, str) and x[-1] != "A" else "FEMENINO"
+    )
+
+    # 2. OBSERVACION
+    df["OBSERVACIÓN"] = df["OBSERVACIONES"]
+
+    # 3. FECHA VIGENCIA
+    df["FECHA VIGENCIA"] = pd.to_datetime(df["FECHA DE SOLICITUD/ INICIO DE VIGENCIA"], errors="coerce")
+
+    # 4. FECHA EXPIRACION = FECHA VIGENCIA + 1 año
+    df["FECHA EXPIRACIÓN"] = df["FECHA VIGENCIA"] + pd.DateOffset(years=1)
+
+    # 5. DÍAS VIGENCIA = diferencia en días
+    df["DÍAS VIGENCIA"] = (df["FECHA EXPIRACIÓN"] - df["FECHA VIGENCIA"]).dt.days
+
+    # 6. CUOTA MENSUAL VEHÍCULOS
+    df["CUOTA MENSUAL VEHÍCULOS"] = df.apply(
+        lambda row: row["TOTAL"] / 12 if "ZURICH" in row["ASEGURADORA"] or "AIG" in row["ASEGURADORA"]
+        else row["TOTAL"] / 10 if "MAPFRE" in row["ASEGURADORA"]
+        else np.nan,
+        axis=1
+    )
+
+    # 7. CANAL, VENDEDOR, FORMA PAGO
+    df["CANAL"] = "CREDIPRIME"
+    df["VENDEDOR"] = "Santiago Viteri"
+    df["FORMA PAGO"] = "CREDITO"
+    df["TIPO PRIMA"]= "Variable"
+
+    # 8. MESES PAGO
+    df["MESES PAGO"] = df["ASEGURADORA"].apply(lambda x: 12 if "ZURICH" in x or "AIG" in x else 10)
+
+    # 9. ORIGEN DE VENTA
+    df["ORIGEN DE VENTA"] = df["CONCESIONARIO"].apply(
+        lambda x: "SEMINUEVO" if isinstance(x, str) and "1001 AUTOS" in x.upper() else "AGENCIA NUEVO"
+    )
+
+    # 10. TIPO PLACA
+    import re
+    def tipo_placa(placa):
+        if isinstance(placa, str) and re.fullmatch(r"[A-Z]{3}[0-9]{3,4}", placa.replace(" ", "")):
+            return "PLACA"
+        return "RAM"
+    df["TIPO PLACA"] = df["PLACA / RAMV"].apply(tipo_placa)
+
+    # 11. ESTADO POLIZA
+    df["ESTADO PÓLIZA"] = "POLIZA CREADA"
+
+    # 12. Columnas vacías
+    df["NÚMERO PÓLIZA VEHÍCULOS"] = ""
+    df["NÚMERO ENDOSO VEHÍCULOS"] = ""
+    df["NÚMERO FACTURA VEHÍCULOS"] = ""
     return df
 
 # --- APP STREAMLIT ---
