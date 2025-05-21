@@ -382,8 +382,8 @@ def calcular_cotizacion(df):
 
     # 6. CUOTA MENSUAL VEHÍCULOS
     df["CUOTA MENSUAL VEHÍCULOS"] = df.apply(
-        lambda row: row["TOTAL"] / 12 if "ZURICH" in row["ASEGURADORA"] or "AIG" in row["ASEGURADORA"]
-        else row["TOTAL"] / 10 if "MAPFRE" in row["ASEGURADORA"]
+        lambda row: row["PRIMA TOTAL VEHÍCULOS"] / 12 if "ZURICH" in row["ASEGURADORA"] or "AIG" in row["ASEGURADORA"]
+        else row["PRIMA TOTAL VEHÍCULOS"] / 10 if "MAPFRE" in row["ASEGURADORA"]
         else np.nan,
         axis=1
     )
