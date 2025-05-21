@@ -300,7 +300,7 @@ def calcular_cotizacion(df):
     
     # FECH: igual a FECHA LIQ EN ARQUIVO (asegúrate que esa columna exista en tu archivo)
     df["FECHA"] = df["Fecha Liq"]
-    df["NÚMERO CERTIFICADO"] = df[No.OPERACION]
+    df["NÚMERO CERTIFICADO"] = df["No.OPERACION"]
     nombres_df = df["ASEGURADO"].apply(dividir_nombres)
     df = pd.concat([df, nombres_df], axis=1)
     df["VALOR TOTAL ASEGURADO"] = pd.to_numeric(df["VALOR TOTAL ASEGURADO"], errors='coerce')
