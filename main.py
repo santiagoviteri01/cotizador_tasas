@@ -359,7 +359,7 @@ def calcular_cotizacion(df):
     df["IMPUESTO VEHÍCULOS IVA"] = df["SUBTOTAL"] * 0.15
     df["PRIMA TOTAL VEHÍCULOS"] = df["SUBTOTAL"] + df["IMPUESTO VEHÍCULOS IVA"]
     df["PLAN"] = df.apply(asignar_plan, axis=1)
-    df["TIPO IDENTIFICACION"] = df["IDENTIFICACION"].apply(tipo_identificacion)
+    df["TIPO IDENTIFICACIÓN"] = df["IDENTIFICACION"].apply(tipo_identificacion)
     df["NÚMERO IDENTIFICACIÓN"]= df["IDENTIFICACION"]
     from datetime import timedelta
 
@@ -376,6 +376,7 @@ def calcular_cotizacion(df):
     # 4. FECHA EXPIRACION = FECHA VIGENCIA + 1 año
     df["FECHA EXPIRACIÓN"] = df["FECHA VIGENCIA"] + pd.DateOffset(years=1)
     df["NÚMERO RENOVACIÓN"] = 0
+    df["DÍAS EXTRA"] = 0
 
     # 5. DÍAS VIGENCIA = diferencia en días
     df["DÍAS VIGENCIA"] = (df["FECHA EXPIRACIÓN"] - df["FECHA VIGENCIA"]).dt.days
@@ -429,6 +430,7 @@ def calcular_cotizacion(df):
     df["TOTAL PAGAR"]=df["PRIMA TOTAL VEHÍCULOS"]
     df["CUOTA MENSUAL"]=df["CUOTA MENSUAL VEHÍCULOS"]
     df["DÉBITO (MEDIO DE PAGO)"]= "Tabla de Amortización"
+    df["BENEFICIARIO ACREEDOR"]=df["ENDOSO A"]
     # 12. Columnas vacías
     df["NÚMERO PÓLIZA VEHÍCULOS"] = ""
     df["NÚMERO ENDOSO VEHÍCULOS"] = ""
@@ -437,16 +439,16 @@ def calcular_cotizacion(df):
 def reorganizar_columnas_salida(df: pd.DataFrame) -> pd.DataFrame:
     # Lista organizada de columnas de salida
     columnas_ordenadas = [
-        "ID_INSURATAN", "FECHA", "TASA SEGURO", "NÚMERO RENOVACIÓN", "TIPO IDENTIFICACIÓN", "NÚMERO IDENTIFICACIÓN",
+        "ID INSURATAN", "FECHA", "TASA SEGURO", "NÚMERO RENOVACIÓN", "TIPO IDENTIFICACIÓN", "NÚMERO IDENTIFICACIÓN",
         "NOMBRE1", "NOMBRE2", "APELLIDO1", "APELLIDO2", "NOMBRE COMPLETO", "GENERO", "ESTADO CIVIL",
-        "CIUDAD CLIENTE", "DIRECCIÓN", "TELÉFONO",
-        "FECHA NACIMIENTO", "CORREO ELECTRÓNICO", "OBSERVACIÓN",
+        "CIUDAD CLIENTE", "DIRECCION", "TELEFONO",
+        "FECHA NACIMIENTO", "CORREO ELECTRONICO", "OBSERVACIÓN",
         "POLIZA MAESTRA", "NÚMERO CERTIFICADO", "FECHA VIGENCIA", "MES VIGENCIA", "ANO VIGENCIA",
         "FECHA EXPIRACIÓN", "DÍAS VIGENCIA", "DÍAS EXTRA", "USO VEHÍCULO", "ASEGURADORA", "PLAN",
         "SEGURO DEDUCIBLE", "CANAL", "CONCESIONARIO", "VENDEDOR", "NÚMERO IDENTIFICACIÓN VENDEDOR",
         "AGENCIA", "ORIGEN DE VENTA", "FORMA PAGO", "MESES PAGO", "MARCA", "MODELO", "MOTOR", "CHASIS",
         "COLOR", "AÑO", "TIPO PLACA", "PLACA", "ACCESORIOS", "ESTADO VEHÍCULO",
-        "BENEFICIARIO ACREEDOR", "VALOR ASEGURADO", "VALOR FINANCIADO", "PRIMA VEHÍCULOS",
+        "BENEFICIARIO ACREEDOR", "VALOR ASEGURADO", "VALOR FINANCIADO", "PRIMA VEHICULOS",
         "IMPUESTO VEHÍCULOS SUPER DE BANCOS", "IMPUESTO VEHÍCULOS SEGURO CAMPESINO",
         "IMPUESTO VEHÍCULOS EMISIÓN", "IMPUESTO VEHÍCULOS IVA", "PRIMA TOTAL VEHÍCULOS",
         "CUOTA MENSUAL VEHÍCULOS", "PRIMA DESGRAVAMEN", "IMPUESTO DESGRAVAMEN SUPER DE BANCOS",
