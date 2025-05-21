@@ -161,10 +161,18 @@ def calcular_cotizacion(df, aseguradora):
     df["COMISION_INSURANCE"] = df["COMISION_TOTAL"] * 0.2
     df["VALOR_MARKUP"] = df["VALOR TOTAL ASEGURADO"] * df["TEC"] * df["MARK_UP_%"]
 
-    df["IMP_SUPER"] = df["PRIMA_TECNICA"] * 0.035
-    df["IMP_CAMPESINO"] = df["PRIMA_TECNICA"] * 0.005
-    df["DERECHO_EMISION"] = df["PRIMA_TECNICA"].apply(derecho_emision)
-    df["SUBTOTAL"] = df["PRIMA_TECNICA"] + df["IMP_SUPER"] + df["IMP_CAMPESINO"] + df["DERECHO_EMISION"]
+    df["PRIMA_VEHICULOS"] = np.where(
+        df["TASA_SEGURA_VALIDA"],
+        df["VALOR TOTAL ASEGURADO"] * df["TASA SEGURO"],
+        np.nan
+    )
+    
+    # Impuestos solo si la PRIMA_VEHICULOS es válida
+    df["IMP_SUPER"] = df["PRIMA_VEHICULOS"] * 0.035
+    df["IMP_CAMPESINO"] = df["PRIMA_VEHICULOS"] * 0.005
+    df["DERECHO_EMISION"] = df["PRIMA_VEHICULOS"].apply(lambda x: derecho_emision(x) if pd.notnull(x) else np.nan)
+    
+    df["SUBTOTAL"] = df["PRIMA_VEHICULOS"] + df["IMP_SUPER"] + df["IMP_CAMPESINO"] + df["DERECHO_EMISION"]
     df["IVA"] = df["SUBTOTAL"] * 0.15
     df["TOTAL"] = df["SUBTOTAL"] + df["IVA"]
 
