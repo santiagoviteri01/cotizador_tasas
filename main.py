@@ -579,38 +579,26 @@ if not df_original.empty:
         "ESTADO PÓLIZA",
         "NÚMERO FACTURA VEHÍCULOS"
     ]
-
     
-
-    column_configs = {
-        "ID INSURATLAN": column_config.TextColumn(
-            "ID INSURATLAN",  # etiqueta
-            disabled=True,    # lo hace read-only
-            help="Clave única (no editable)"
-        ),
-        # Opcionalmente podrías configurar help o label en las demás:
-        "TELEFONO": column_config.TextColumn("Teléfono Oficina"),
-        "CORREO ELECTRONICO": column_config.TextColumn("Correo Electrónico"),
-        "OBSERVACIÓN": column_config.TextColumn("Observación"),
-        "ESTADO PÓLIZA": column_config.TextColumn("Estado Póliza"),
-        "NÚMERO FACTURA VEHÍCULOS": column_config.TextColumn("Factura Vehículos"),
-    }
+    # Aseguramos que esas columnas existan
+    for col in editable_cols:
+        if col not in df_original.columns:
+            df_original[col] = ""
     
+    # Ahora el editor, deshabilitando exclusivamente ID INSURATLAN
     df_editable = st.data_editor(
-    df_original[editable_cols],
-    column_config=column_configs,
-    num_rows="dynamic",
-    use_container_width=True,
+        df_original[editable_cols],
+        disabled_columns=["ID INSURATLAN"],  # <— aquí marcamos esa columna como read-only
+        num_rows="dynamic",
+        use_container_width=True,
     )
-
-
-
+    
     if st.button("💾 Guardar cambios"):
-        # 1) Aplica cambios a df_original
         for _, row in df_editable.iterrows():
             mask = df_original["ID INSURATLAN"] == row["ID INSURATLAN"]
             df_original.loc[mask, editable_cols[1:]] = row[editable_cols[1:]].values
 
+    set_df_original(df_original)
         # 2) Guarda en sesión
         set_df_original(df_original)
 
