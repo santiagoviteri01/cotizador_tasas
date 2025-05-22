@@ -571,6 +571,16 @@ df_original = get_df_original()
 if not df_original.empty:
     st.subheader("✏️ Editar asegurados")
     st.write("Columnas disponibles:", df_original.columns.tolist())
+    editable_cols = [
+        "ID INSURATLAN",
+        "TELEFONO",
+        "CORREO ELECTRONICO",
+        "OBSERVACIÓN",
+        "ESTADO PÓLIZA",
+        "NÚMERO FACTURA VEHÍCULOS"
+    ]
+
+    
 
     column_configs = {
         "ID INSURATLAN": column_config.TextColumn(
