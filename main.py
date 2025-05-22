@@ -484,7 +484,7 @@ st.set_page_config(page_title="Cotizador Crediprime")
 st.title("Cotizador Crediprime")
 google_creds_dict = {
     "type": "service_account",
-    "project_id": st.secrets["general"]["project_id"],
+    "project_id": st.secrets["google"]["project_id"],
     "private_key_id": st.secrets["general"]["private_key_id"],
     "private_key": st.secrets["general"]["private_key"],
     "client_email": st.secrets["general"]["client_email"],
@@ -494,7 +494,7 @@ google_creds_dict = {
     "auth_provider_x509_cert_url": st.secrets["general"]["auth_provider_x509_cert_url"],
     "client_x509_cert_url": st.secrets["general"]["client_x509_cert_url"]
 }
-creds = Credentials.from_service_account_info(google_creds_dict)
+creds = Credentials.from_service_account_info(st.secrets["google"])
 client = gspread.authorize(creds)
 
 archivo = st.file_uploader("Carga la base de entrada (.xlsx)", type=["xlsx"])
