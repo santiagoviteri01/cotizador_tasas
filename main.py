@@ -493,7 +493,7 @@ creds_info = dict(st.secrets["google"])   # conviértelo a un dict estándar
 creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
 
 # 3) Crea las credenciales
-creds = Credentials.from_service_account_info(creds_info)
+creds = Credentials.from_service_account_info(creds_info, scopes=SCOPES)
 client = gspread.authorize(creds)
 
 archivo = st.file_uploader("Carga la base de entrada (.xlsx)", type=["xlsx"])
