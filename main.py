@@ -569,6 +569,8 @@ if archivo:
 df_original = get_df_original()
 if not df_original.empty:
     st.subheader("✏️ Editar asegurados")
+    st.write("Columnas disponibles:", df_original.columns.tolist())
+
     editable_cols = ["TELEFONO", "CORREO ELECTRÓNICO", "OBSERVACION", "ESTADO PÓLIZA","NÚMERO FACTURA VEHÍCULOS" ]
     df_editable = st.data_editor(
         df_original[editable_cols],
