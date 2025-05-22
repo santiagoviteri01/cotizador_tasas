@@ -495,7 +495,8 @@ creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
 # 3) Crea las credenciales
 creds = Credentials.from_service_account_info(creds_info, scopes=SCOPES)
 client = gspread.authorize(creds)
-
+spreadsheet = client.open_by_key("13hY8la9Xke5-wu3vmdB-tNKtY5D6ud4FZrJG2_HtKd8")
+hoja = spreadsheet.worksheet("asegurados_insurance")
 archivo = st.file_uploader("Carga la base de entrada (.xlsx)", type=["xlsx"])
 
 if archivo:
