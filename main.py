@@ -133,18 +133,19 @@ def obtener_tasas_validas_zurich(valor, modelo):
             if valor <= limite:
                 return tasas
     return []
-def actualizar_datos_poliza(df_base, df_respuesta):
-    df_base = df_base.copy()
-    df_respuesta = df_respuesta.copy()
-    df_base.set_index("CÉDULA", inplace=True)
-    df_respuesta.set_index("CÉDULA", inplace=True)
+# ————— (3) Función para actualizar pólizas —————
+def actualizar_datos_poliza(df_base: pd.DataFrame, df_respuesta: pd.DataFrame) -> pd.DataFrame:
+    df_base = df_base.copy().set_index("ID INSURATLAN")
+    df_respuesta = df_respuesta.copy().set_index("ID INSURATLAN")
 
+    # Columnas que puede proveer la aseguradora
     for col in ["NÚMERO PÓLIZA VEHÍCULOS", "NÚMERO FACTURA VEHÍCULOS"]:
         if col in df_respuesta.columns:
+            # esto reemplaza valores en df_base con los de df_respuesta
             df_base.update(df_respuesta[[col]])
 
-    df_base.reset_index(inplace=True)
-    return df_base
+    return df_base.reset_index()
+
 # Validación de tasa seguro
 def validar_tasa_seguro(row, aseguradora):
     valor = row["VALOR TOTAL ASEGURADO"]
@@ -488,7 +489,7 @@ def get_df_original():
 # --- APP STREAMLIT ---
 st.set_page_config(page_title="Cotizador Crediprime")
 st.title("Cotizador Crediprime")
-st.write(st.secrets)
+#st.write(st.secrets)
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
@@ -556,12 +557,24 @@ if archivo:
     else:
         st.warning("⚠️ No hay resultados para descargar.")
         
-#uploaded_file = st.file_uploader("Sube archivo de aseguradora", type=["xlsx"])
-#if uploaded_file:
-#    df_respuesta = pd.read_excel(uploaded_file)
-#    df_actualizada = actualizar_datos_poliza(df_original, df_respuesta)
-#    st.success("✅ Registros actualizados")
-#    st.dataframe(df_actualizada)
+# ————— (6) Uploader de respuestas de aseguradora —————
+uploaded_resp = st.file_uploader("2️⃣ Sube archivo de respuesta de aseguradora", type=["xlsx"], key="resp")
+if uploaded_resp:
+    df_respuesta = pd.read_excel(uploaded_resp)
+    df_actualizada = actualizar_datos_poliza(get_df_original(), df_respuesta)
+    set_df_original(df_actualizada)
+
+    # Reescribe en Google Sheets
+    df_upd = df_actualizada.copy()
+    for c in df_upd.select_dtypes(["datetime64"]):
+        df_upd[c] = df_upd[c].dt.strftime("%Y-%m-%d")
+    df_upd = df_upd.fillna("").astype(str)
+    values = [df_upd.columns.tolist()] + df_upd.values.tolist()
+    hoja_asegurados.clear()
+    hoja_asegurados.update(values)
+
+    st.success("✅ Registros de póliza actualizados")
+    st.dataframe(df_actualizada)
 
 
 from streamlit import column_config
