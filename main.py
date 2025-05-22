@@ -487,6 +487,7 @@ google_creds_dict = {
     "type": "service_account",
     "project_id": "tu_project_id",
     "private_key": st.secrets["general"]["private_key"],
+    "token_uri":st.secrets["general"]["token_uri"],
     "client_email": st.secrets["general"]["client_email"],
     "client_id": st.secrets["general"]["client_id"],
 }
