@@ -482,6 +482,7 @@ def reorganizar_columnas_salida(df: pd.DataFrame) -> pd.DataFrame:
 # --- APP STREAMLIT ---
 st.set_page_config(page_title="Cotizador Crediprime")
 st.title("Cotizador Crediprime")
+st.write(st.secrets)
 creds_info = st.secrets["google"].copy()
 
 # 2) Reemplaza los literales "\\n" por saltos reales "\n"
