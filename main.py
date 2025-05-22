@@ -587,11 +587,12 @@ if not df_original.empty:
     }
     
     df_editable = st.data_editor(
-        df_original[editable_cols],
-        column_config=column_configs,
-        num_rows="dynamic",
-        use_container_width=True,
+    df_original[editable_cols],
+    column_config=column_configs,
+    num_rows="dynamic",
+    use_container_width=True,
     )
+
 
 
     if st.button("💾 Guardar cambios"):
