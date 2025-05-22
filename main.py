@@ -131,7 +131,18 @@ def obtener_tasas_validas_zurich(valor, modelo):
             if valor <= limite:
                 return tasas
     return []
+def actualizar_datos_poliza(df_base, df_respuesta):
+    df_base = df_base.copy()
+    df_respuesta = df_respuesta.copy()
+    df_base.set_index("CÉDULA", inplace=True)
+    df_respuesta.set_index("CÉDULA", inplace=True)
 
+    for col in ["NÚMERO PÓLIZA VEHÍCULOS", "NÚMERO FACTURA VEHÍCULOS"]:
+        if col in df_respuesta.columns:
+            df_base.update(df_respuesta[[col]])
+
+    df_base.reset_index(inplace=True)
+    return df_base
 # Validación de tasa seguro
 def validar_tasa_seguro(row, aseguradora):
     valor = row["VALOR TOTAL ASEGURADO"]
@@ -469,7 +480,21 @@ def reorganizar_columnas_salida(df: pd.DataFrame) -> pd.DataFrame:
 # --- APP STREAMLIT ---
 st.set_page_config(page_title="Cotizador Crediprime")
 st.title("Cotizador Crediprime")
+# Google Sheets creds
+google_creds_dict = {
+    "type": "service_account",
+    "project_id": "tu_project_id",
+    "private_key_id": st.secrets["google"]["private_key_id"],
+    "private_key": st.secrets["google"]["private_key"],
+    "client_email": st.secrets["google"]["client_email"],
+    "client_id": st.secrets["google"]["client_id"],
+}
+creds = Credentials.from_service_account_info(google_creds_dict)
 
+# AWS creds
+AWS_KEY = st.secrets["aws"]["AWS_ACCESS_KEY_ID"]
+AWS_SECRET = st.secrets["aws"]["AWS_SECRET_ACCESS_KEY"]
+AWS_BUCKET = st.secrets["aws"]["AWS_BUCKET_NAME"]
 archivo = st.file_uploader("Carga la base de entrada (.xlsx)", type=["xlsx"])
 
 if archivo:
@@ -478,18 +503,22 @@ if archivo:
     df_ordenado = reorganizar_columnas_salida(resultado)
     st.success("✅ Cálculos completados")
     st.dataframe(df_ordenado.head(50))
-    # Suponiendo que ya tienes tu DataFrame llamado 'resultado'
+
+    # 📤 Escribir a Google Sheets
+    sh = client.open_by_key("13hY8la9Xke5-wu3vmdB-tNKtY5D6ud4FZrJG2_HtKd8")
+    try:
+        hoja_asegurados = sh.worksheet("asegurados_insurance")
+    except:
+        hoja_asegurados = sh.add_worksheet(title="asegurados_insurance", rows="1000", cols="50")
+
+    hoja_asegurados.clear()
+    hoja_asegurados.update([df_ordenado.columns.values.tolist()] + df_ordenado.values.tolist())
+
+    # 📥 Descarga local
     if not df_ordenado.empty:
-        # Crear buffer de memoria
         output = io.BytesIO()
-    
-        # Exportar el DataFrame al buffer
         df_ordenado.to_excel(output, index=False, engine='openpyxl')
-    
-        # Mover el puntero al inicio del archivo
         output.seek(0)
-    
-        # Mostrar botón de descarga
         st.download_button(
             label="📥 Descargar Excel",
             data=output,
@@ -498,4 +527,11 @@ if archivo:
         )
     else:
         st.warning("⚠️ No hay resultados para descargar.")
+        
+uploaded_file = st.file_uploader("Sube archivo de aseguradora", type=["xlsx"])
+if uploaded_file:
+    df_respuesta = pd.read_excel(uploaded_file)
+    df_actualizada = actualizar_datos_poliza(df_original, df_respuesta)
+    st.success("✅ Registros actualizados")
+    st.dataframe(df_actualizada)
 
