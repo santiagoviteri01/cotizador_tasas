@@ -311,6 +311,19 @@ def calcular_cotizacion(df):
     
     df = df.copy()
     df = df.reset_index(drop=True)
+    if "ID INSURATLAN" in df.columns:
+        # nos aseguramos de que sean floats/int o NA
+        df["ID INSURATLAN"] = pd.to_numeric(df["ID INSURATLAN"], errors="coerce")
+        max_id = int(df["ID INSURATLAN"].max(skipna=True)) if df["ID INSURATLAN"].notna().any() else 49999
+        mask_nuevos = df["ID INSURATLAN"].isna()
+        n_nuevos  = mask_nuevos.sum()
+        # si hay filas sin ID, les asignamos el rango siguiente
+        if n_nuevos > 0:
+            df.loc[mask_nuevos, "ID INSURATLAN"] = np.arange(max_id + 1, max_id + 1 + n_nuevos)
+    else:
+        #  ————— 2) Si no existe la columna, la creamos desde cero —————
+        df = df.reset_index(drop=True)
+        df["ID INSURATLAN"] = df.index + 50000
     df["ID INSURATLAN"] = df.index + 50000
     
     # FECH: igual a FECHA LIQ EN ARQUIVO (asegúrate que esa columna exista en tu archivo)
@@ -529,7 +542,6 @@ def cargar_hoja_completa():
     return df
 
 # Uso:
-df_original = cargar_hoja_completa()
 
 df_original = cargar_hoja_completa()
 
