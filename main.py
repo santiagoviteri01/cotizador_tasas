@@ -515,24 +515,40 @@ except gspread.WorksheetNotFound:
 # ————— 2) Carga inicial de la hoja como DataFrame “original” —————
 @st.cache_data(ttl=300)
 def cargar_hoja_completa():
-    # lee todo, quita filas vacías
-    df = get_as_dataframe(hoja, evaluate_formulas=True, header=0) \
-            .dropna(how="all") \
-            .fillna("")
-    # forzamos tipo de ID INSURATLAN
-    if "ID INSURATLAN" in df.columns:
-        df["ID INSURATLAN"] = df["ID INSURATLAN"].astype(int)
+    # Obtén todas las celdas
+    datos = hoja.get_all_values()
+
+    # La primera fila son los nombres de columna
+    cols = datos[0]
+    # El resto son los datos
+    rows = datos[1:]
+
+    # Crea el DataFrame y limpia filas vacías
+    df = pd.DataFrame(rows, columns=cols).dropna(how="all", subset=["ID INSURATLAN"])
+    # Convierte tipos básicos
+    df["ID INSURATLAN"] = df["ID INSURATLAN"].astype(int)
     return df
+
+# Uso:
+df_original = cargar_hoja_completa()
 
 df_original = cargar_hoja_completa()
 
 # ————— 3) Función para persistir cambios (reescribe toda la hoja) —————
 def persistir_en_sheet(df: pd.DataFrame):
-    # opcional: formatea datetime, etc.
-    for c in df.select_dtypes(include=["datetime64"]):
+    # Formateo de fechas a string
+    for c in df.select_dtypes(include=["datetime64", "datetime64[ns]"]):
         df[c] = df[c].dt.strftime("%Y-%m-%d")
-    # vuelca todo de un tirón
-    set_with_dataframe(hoja, df, include_index=False)
+
+    # Reemplaza NaN/NaT con cadenas vacías
+    df = df.fillna("").astype(str)
+
+    # Prepara la matriz de valores (incluyendo cabecera)
+    values = [df.columns.tolist()] + df.values.tolist()
+
+    # Limpia la hoja y sube todo
+    hoja.clear()
+    hoja.update(values)
 
 # ————— 4) Uploader de nueva base + merge —————
 archivo = st.file_uploader("1️⃣ Carga la base nueva (.xlsx)", type=["xlsx"])
