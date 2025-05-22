@@ -324,8 +324,7 @@ def calcular_cotizacion(df):
         #  ————— 2) Si no existe la columna, la creamos desde cero —————
         df = df.reset_index(drop=True)
         df["ID INSURATLAN"] = df.index + 50000
-    df["ID INSURATLAN"] = df.index + 50000
-    
+
     # FECH: igual a FECHA LIQ EN ARQUIVO (asegúrate que esa columna exista en tu archivo)
     df["FECHA"] = df["Fecha Liq"]
     df["NÚMERO CERTIFICADO"] = df["No.OPERACION"]
@@ -565,11 +564,10 @@ def persistir_en_sheet(df: pd.DataFrame):
 archivo = st.file_uploader("1️⃣ Carga la base nueva (.xlsx)", type=["xlsx"])
 if archivo:
     df_nueva = pd.read_excel(archivo)
-    df_calc  = calcular_cotizacion(df_nueva)
-    df_orden = reorganizar_columnas_salida(df_calc)
-
+    df_orden = reorganizar_columnas_salida(df_nueva)
+    df_calc  = calcular_cotizacion(df_orden)
     # 1) Fusiona: filas nuevas + actualización de existentes
-    combinado = pd.concat([df_original, df_orden], ignore_index=True)
+    combinado = pd.concat([df_original, df_calc], ignore_index=True)
     combinado = combinado.drop_duplicates(subset=["ID INSURATLAN"], keep="last")
 
     # 2) Refresca la vista y la hoja
