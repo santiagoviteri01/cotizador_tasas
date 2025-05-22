@@ -4,6 +4,8 @@ import numpy as np
 import io
 import json
 from google.oauth2.service_account import Credentials
+from gspread_dataframe import get_as_dataframe, set_with_dataframe
+
 import gspread
 def tipo_identificacion(valor):
     if pd.isna(valor):
