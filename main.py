@@ -596,8 +596,8 @@ if not df_original.empty:
     
     if st.button("💾 Guardar cambios"):
         for _, row in df_editable.iterrows():
-            mask = df_original["ID INSURATLAN"] == row["ID INSURATLAN"]
-            df_original.loc[mask, editable_cols[1:]] = row[editable_cols[1:]].values
+            mask = df_original["ID INSURATLAN"] == int(row["ID INSURATLAN"])
+            df_original.loc[mask, editable_cols] = row[editable_cols].values
         # 2) Guarda en sesión
         set_df_original(df_original)
 
