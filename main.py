@@ -503,131 +503,69 @@ creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
 creds = Credentials.from_service_account_info(creds_info, scopes=SCOPES)
 client = gspread.authorize(creds)
 spreadsheet = client.open_by_key("13hY8la9Xke5-wu3vmdB-tNKtY5D6ud4FZrJG2_HtKd8")
-hoja = spreadsheet.worksheet("asegurados_insurance")
-archivo = st.file_uploader("Carga la base de entrada (.xlsx)", type=["xlsx"])
 sh = client.open_by_key("13hY8la9Xke5-wu3vmdB-tNKtY5D6ud4FZrJG2_HtKd8")
+# Asegúrate de que exista la hoja
 try:
-    hoja_asegurados = sh.worksheet("asegurados_insurance")
+    hoja = spreadsheet.worksheet("asegurados_insurance")
 except gspread.WorksheetNotFound:
-    hoja_asegurados = sh.add_worksheet(title="asegurados_insurance", rows="1000", cols="50")
-    
+    hoja = spreadsheet.add_worksheet("asegurados_insurance", rows="2000", cols="200")
+
+# ————— 2) Carga inicial de la hoja como DataFrame “original” —————
+@st.cache_data(ttl=300)
+def cargar_hoja_completa():
+    # lee todo, quita filas vacías
+    df = get_as_dataframe(hoja, evaluate_formulas=True, header=0) \
+            .dropna(how="all") \
+            .fillna("")
+    # forzamos tipo de ID INSURATLAN
+    if "ID INSURATLAN" in df.columns:
+        df["ID INSURATLAN"] = df["ID INSURATLAN"].astype(int)
+    return df
+
+df_original = cargar_hoja_completa()
+
+# ————— 3) Función para persistir cambios (reescribe toda la hoja) —————
+def persistir_en_sheet(df: pd.DataFrame):
+    # opcional: formatea datetime, etc.
+    for c in df.select_dtypes(include=["datetime64"]):
+        df[c] = df[c].dt.strftime("%Y-%m-%d")
+    # vuelca todo de un tirón
+    set_with_dataframe(hoja, df, include_index=False)
+
+# ————— 4) Uploader de nueva base + merge —————
+archivo = st.file_uploader("1️⃣ Carga la base nueva (.xlsx)", type=["xlsx"])
 if archivo:
-    df = pd.read_excel(archivo)
-    resultado = calcular_cotizacion(df)
-    df_ordenado = reorganizar_columnas_salida(resultado)
-    st.success("✅ Cálculos completados")
-    st.dataframe(df_ordenado.head(50))
-    set_df_original(df_ordenado)
+    df_nueva = pd.read_excel(archivo)
+    df_calc  = calcular_cotizacion(df_nueva)
+    df_orden = reorganizar_columnas_salida(df_calc)
 
+    # 1) Fusiona: filas nuevas + actualización de existentes
+    combinado = pd.concat([df_original, df_orden], ignore_index=True)
+    combinado = combinado.drop_duplicates(subset=["ID INSURATLAN"], keep="last")
 
-    # 📤 Escribir a Google Sheets
-   
+    # 2) Refresca la vista y la hoja
+    df_original = combinado
+    persistir_en_sheet(df_original)
 
-    # ——— Normalizamos antes de enviar ———
-    df_upd = df_ordenado.copy()
+    st.success("✅ Base original actualizada con la nueva carga")
+    st.dataframe(df_original)
 
-    # 1) Formatea datetime a string YYYY-MM-DD
-    for c in df_upd.select_dtypes(include=["datetime64[ns]", "datetime64"]):
-        df_upd[c] = df_upd[c].dt.strftime("%Y-%m-%d")
-
-    # 2) Reemplaza NaT/NaN por cadena vacía
-    df_upd = df_upd.fillna("")
-
-    # 3) Convierte todo a str para que no queden objetos numpy
-    df_upd = df_upd.astype(str)
-
-    # 4) Prepara la lista de listas
-    values = [df_upd.columns.tolist()] + df_upd.values.tolist()
-
-    # 5) Limpia y actualiza la hoja
-    hoja_asegurados.clear()
-    hoja_asegurados.update(values)
-
-    # 📥 Descarga local
-    if not df_ordenado.empty:
-        output = io.BytesIO()
-        df_ordenado.to_excel(output, index=False, engine='openpyxl')
-        output.seek(0)
-        st.download_button(
-            label="📥 Descargar Excel",
-            data=output,
-            file_name="resultado_cotizacion.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-    else:
-        st.warning("⚠️ No hay resultados para descargar.")
-        
-# ————— (6) Uploader de respuestas de aseguradora —————
-uploaded_resp = st.file_uploader("2️⃣ Sube archivo de respuesta de aseguradora", type=["xlsx"], key="resp")
+# ————— 5) Uploader de respuestas de póliza —————
+uploaded_resp = st.file_uploader("2️⃣ Sube respuesta de aseguradora", type=["xlsx"])
 if uploaded_resp:
-    df_respuesta = pd.read_excel(uploaded_resp)
-    df_actualizada = actualizar_datos_poliza(get_df_original(), df_respuesta)
-    set_df_original(df_actualizada)
+    df_resp = pd.read_excel(uploaded_resp)
+    df_resp = df_resp.set_index("ID INSURATLAN").copy()
 
-    # Reescribe en Google Sheets
-    df_upd = df_actualizada.copy()
-    for c in df_upd.select_dtypes(["datetime64"]):
-        df_upd[c] = df_upd[c].dt.strftime("%Y-%m-%d")
-    df_upd = df_upd.fillna("").astype(str)
-    values = [df_upd.columns.tolist()] + df_upd.values.tolist()
-    hoja_asegurados.clear()
-    hoja_asegurados.update(values)
+    # Actualiza sólo póliza y factura
+    for col in ["NÚMERO PÓLIZA VEHÍCULOS", "NÚMERO FACTURA VEHÍCULOS"]:
+        if col in df_resp.columns:
+            idxs = df_original["ID INSURATLAN"].isin(df_resp.index)
+            df_original.loc[idxs, col] = df_original.loc[idxs, "ID INSURATLAN"].map(df_resp[col])
 
-    st.success("✅ Registros de póliza actualizados")
-    st.dataframe(df_actualizada)
-
-
-from streamlit import column_config
-
-# ————— 4) Editor de asegurados + reescritura si cambian —————
-df_original = get_df_original()
-if not df_original.empty:
-    st.subheader("Editar asegurados")
-
-    # Las columnas que SÍ dejamos editar:
-    editable_cols = [
-        "TELEFONO",
-        "CORREO ELECTRONICO",
-        "OBSERVACIÓN",
-        "ESTADO PÓLIZA",
-        "NÚMERO FACTURA VEHÍCULOS"
-    ]
-
-    # 1) Creamos una copia para editar y forzamos todo a str (evita errores de tipo)
-    df_for_editor = df_original.copy()
-    df_for_editor[editable_cols] = df_for_editor[editable_cols].astype(str)
-
-    # 2) Ponemos el ID_INSURATLAN como índice
-    df_for_editor = df_for_editor.set_index("ID INSURATLAN")
-
-    # 3) Llamamos a data_editor mostrando índice (ID) + columnas editables
-    df_editable = st.data_editor(
-        df_for_editor[editable_cols],
-        num_rows="dynamic",
-        use_container_width=True,
-    )
-    
-    if st.button("💾 Guardar cambios"):
-        for id_ins, row in df_editable.iterrows():
-            # id_ins viene del índice: es tu ID INSURATLAN
-            mask = df_original["ID INSURATLAN"] == id_ins
-            # actualizamos todas las columnas editables de una vez
-            df_original.loc[mask, editable_cols] = row.values
-        # 2) Guarda en sesión
-        set_df_original(df_original)
-
-        # 3) Reescribe hoja en Google Sheets
-        df_upd = df_original.copy()
-        for c in df_upd.select_dtypes(include=["datetime64", "datetime64[ns]"]):
-            df_upd[c] = df_upd[c].dt.strftime("%Y-%m-%d")
-        df_upd = df_upd.fillna("").astype(str)
-        values = [df_upd.columns.tolist()] + df_upd.values.tolist()
-
-        hoja_asegurados.clear()
-        hoja_asegurados.update(values)
-
-        st.success("✅ Cambios guardados y hoja actualizada")
-        st.dataframe(df_original.head(10))
+    # Persiste cambios
+    persistir_en_sheet(df_original)
+    st.success("✅ Pólizas y facturas actualizadas")
+    st.dataframe(df_original)
 
 EDITABLE_COLS = [
     "TELEFONO",
