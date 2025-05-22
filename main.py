@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import io
+import json
+from google.oauth2.service_account import Credentials
 
 def tipo_identificacion(valor):
     if pd.isna(valor):
