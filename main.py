@@ -564,6 +564,7 @@ if archivo:
 #    st.dataframe(df_actualizada)
 
 
+from streamlit import column_config
 
 # ————— 4) Editor de asegurados + reescritura si cambian —————
 df_original = get_df_original()
@@ -571,12 +572,27 @@ if not df_original.empty:
     st.subheader("✏️ Editar asegurados")
     st.write("Columnas disponibles:", df_original.columns.tolist())
 
-    editable_cols = ["TELEFONO", "CORREO ELECTRONICO", "OBSERVACIÓN", "ESTADO PÓLIZA","NÚMERO FACTURA VEHÍCULOS" ]
+    column_configs = {
+        "ID INSURATLAN": column_config.TextColumn(
+            "ID INSURATLAN",  # etiqueta
+            disabled=True,    # lo hace read-only
+            help="Clave única (no editable)"
+        ),
+        # Opcionalmente podrías configurar help o label en las demás:
+        "TELEFONO": column_config.TextColumn("Teléfono Oficina"),
+        "CORREO ELECTRONICO": column_config.TextColumn("Correo Electrónico"),
+        "OBSERVACIÓN": column_config.TextColumn("Observación"),
+        "ESTADO PÓLIZA": column_config.TextColumn("Estado Póliza"),
+        "NÚMERO FACTURA VEHÍCULOS": column_config.TextColumn("Factura Vehículos"),
+    }
+    
     df_editable = st.data_editor(
         df_original[editable_cols],
+        column_config=column_configs,
         num_rows="dynamic",
         use_container_width=True,
     )
+
 
     if st.button("💾 Guardar cambios"):
         # 1) Aplica cambios a df_original
