@@ -570,25 +570,26 @@ from streamlit import column_config
 df_original = get_df_original()
 if not df_original.empty:
     st.subheader("✏️ Editar asegurados")
-    st.write("Columnas disponibles:", df_original.columns.tolist())
+
+    # Las columnas que SÍ dejamos editar:
     editable_cols = [
-        "ID INSURATLAN",
         "TELEFONO",
         "CORREO ELECTRONICO",
         "OBSERVACIÓN",
         "ESTADO PÓLIZA",
         "NÚMERO FACTURA VEHÍCULOS"
     ]
-    
-    # Aseguramos que esas columnas existan
-    for col in editable_cols:
-        if col not in df_original.columns:
-            df_original[col] = ""
-    
-    # Ahora el editor, deshabilitando exclusivamente ID INSURATLAN
+
+    # 1) Creamos una copia para editar y forzamos todo a str (evita errores de tipo)
+    df_for_editor = df_original.copy()
+    df_for_editor[editable_cols] = df_for_editor[editable_cols].astype(str)
+
+    # 2) Ponemos el ID_INSURATLAN como índice
+    df_for_editor = df_for_editor.set_index("ID INSURATLAN")
+
+    # 3) Llamamos a data_editor mostrando índice (ID) + columnas editables
     df_editable = st.data_editor(
-        df_original[editable_cols],
-        disabled_columns=["ID INSURATLAN"],  # <— aquí marcamos esa columna como read-only
+        df_for_editor[editable_cols],
         num_rows="dynamic",
         use_container_width=True,
     )
