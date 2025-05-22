@@ -510,11 +510,28 @@ if archivo:
     sh = client.open_by_key("13hY8la9Xke5-wu3vmdB-tNKtY5D6ud4FZrJG2_HtKd8")
     try:
         hoja_asegurados = sh.worksheet("asegurados_insurance")
-    except:
+    except gspread.WorksheetNotFound:
         hoja_asegurados = sh.add_worksheet(title="asegurados_insurance", rows="1000", cols="50")
 
+    # ——— Normalizamos antes de enviar ———
+    df_upd = df_ordenado.copy()
+
+    # 1) Formatea datetime a string YYYY-MM-DD
+    for c in df_upd.select_dtypes(include=["datetime64[ns]", "datetime64"]):
+        df_upd[c] = df_upd[c].dt.strftime("%Y-%m-%d")
+
+    # 2) Reemplaza NaT/NaN por cadena vacía
+    df_upd = df_upd.fillna("")
+
+    # 3) Convierte todo a str para que no queden objetos numpy
+    df_upd = df_upd.astype(str)
+
+    # 4) Prepara la lista de listas
+    values = [df_upd.columns.tolist()] + df_upd.values.tolist()
+
+    # 5) Limpia y actualiza la hoja
     hoja_asegurados.clear()
-    hoja_asegurados.update([df_ordenado.columns.values.tolist()] + df_ordenado.values.tolist())
+    hoja_asegurados.update(values)
 
     # 📥 Descarga local
     if not df_ordenado.empty:
