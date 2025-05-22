@@ -628,3 +628,60 @@ if not df_original.empty:
 
         st.success("✅ Cambios guardados y hoja actualizada")
         st.dataframe(df_original.head(10))
+
+EDITABLE_COLS = [
+    "TELEFONO",
+    "CORREO ELECTRONICO",
+    "OBSERVACIÓN",
+    "ESTADO PÓLIZA",
+    "NÚMERO FACTURA VEHÍCULOS"
+]
+# — Bloque de búsqueda y edición puntual —
+df_original = get_df_original()
+if not df_original.empty:
+    st.subheader("🔎 Buscar y editar un asegurado")
+
+    # 1) Input de búsqueda por ID o Póliza
+    buscar_id    = st.text_input("Buscar por ID INSURATLAN")
+    buscar_poliza = st.text_input("Buscar por NÚMERO PÓLIZA VEHÍCULOS")
+
+    # 2) Filtramos el DataFrame según lo ingresado
+    df_filtrado = df_original.copy()
+    if buscar_id:
+        df_filtrado = df_filtrado[df_filtrado["ID INSURATLAN"].astype(str) == buscar_id.strip()]
+    elif buscar_poliza:
+        df_filtrado = df_filtrado[df_filtrado["NÚMERO PÓLIZA VEHÍCULOS"].astype(str) == buscar_poliza.strip()]
+
+    if df_filtrado.empty:
+        st.info("No se encontró ningún registro con esos criterios.")
+    else:
+        # Debería ser un solo registro; tomamos el primero
+        st.write("Se encontró este asegurado:")
+        registro = df_filtrado.iloc[[0]]  # DataFrame de una sola fila
+
+        # 3) Preparamos la fila para editar:
+        df_to_edit = registro.set_index("ID INSURATLAN")[EDITABLE_COLS].astype(str)
+
+        # 4) Mostramos data_editor (ID en índice, no editable)
+        df_edit = st.data_editor(
+            df_to_edit,
+            num_rows="fixed",
+            use_container_width=True,
+        )
+
+        # 5) Guardar cambios
+        if st.button("💾 Guardar cambios en este registro"):
+            # Volvemos a índice columna para leer ID
+            df_edit = df_edit.reset_index()
+            id_ins = df_edit.at[0, "ID INSURATLAN"]
+
+            # Aplicamos cada campo editado de vuelta a df_original
+            mask = df_original["ID INSURATLAN"] == id_ins
+            for col in EDITABLE_COLS:
+                df_original.loc[mask, col] = df_edit.at[0, col]
+
+            # Guardamos en sesión y, opcionalmente, en Google Sheets...
+            set_df_original(df_original)
+
+            st.success(f"Registro ID {id_ins} actualizado.")
+            st.dataframe(df_original.loc[mask])
