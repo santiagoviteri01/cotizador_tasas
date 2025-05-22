@@ -482,8 +482,7 @@ def reorganizar_columnas_salida(df: pd.DataFrame) -> pd.DataFrame:
 # --- APP STREAMLIT ---
 st.set_page_config(page_title="Cotizador Crediprime")
 st.title("Cotizador Crediprime")
-google_creds_dict = st.secrets["general"]
-creds = Credentials.from_service_account_info(google_creds_dict)
+creds = Credentials.from_service_account_info(st.secrets["general"])
 client = gspread.authorize(creds)
 
 archivo = st.file_uploader("Carga la base de entrada (.xlsx)", type=["xlsx"])
