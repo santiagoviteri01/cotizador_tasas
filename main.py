@@ -556,15 +556,15 @@ if archivo:
     else:
         st.warning("⚠️ No hay resultados para descargar.")
         
-uploaded_file = st.file_uploader("Sube archivo de aseguradora", type=["xlsx"])
-if uploaded_file:
-    df_respuesta = pd.read_excel(uploaded_file)
-    df_actualizada = actualizar_datos_poliza(df_original, df_respuesta)
-    st.success("✅ Registros actualizados")
-    st.dataframe(df_actualizada)
+#uploaded_file = st.file_uploader("Sube archivo de aseguradora", type=["xlsx"])
+#if uploaded_file:
+#    df_respuesta = pd.read_excel(uploaded_file)
+#    df_actualizada = actualizar_datos_poliza(df_original, df_respuesta)
+#    st.success("✅ Registros actualizados")
+#    st.dataframe(df_actualizada)
+
 st.subheader("✏️ Editar asegurados")
-editable_cols = ["CÉDULA", "TELÉFONO OFICINA", "CORREO ELECTRÓNICO", "OBSERVACIÓN"]
-df_editable = st.data_editor(df_original[editable_cols], use_container_width=True)
+
 
 df_original = get_df_original()
 if not df_original.empty:
