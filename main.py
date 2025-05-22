@@ -483,7 +483,7 @@ def reorganizar_columnas_salida(df: pd.DataFrame) -> pd.DataFrame:
 st.set_page_config(page_title="Cotizador Crediprime")
 st.title("Cotizador Crediprime")
 st.write(st.secrets)
-creds_info = st.secrets["google"].copy()
+creds_info = dict(st.secrets["google"])   # conviértelo a un dict estándar
 
 # 2) Reemplaza los literales "\\n" por saltos reales "\n"
 creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
