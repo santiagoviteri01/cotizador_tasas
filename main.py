@@ -483,6 +483,10 @@ def reorganizar_columnas_salida(df: pd.DataFrame) -> pd.DataFrame:
 st.set_page_config(page_title="Cotizador Crediprime")
 st.title("Cotizador Crediprime")
 st.write(st.secrets)
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
 creds_info = dict(st.secrets["google"])   # conviértelo a un dict estándar
 
 # 2) Reemplaza los literales "\\n" por saltos reales "\n"
