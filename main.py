@@ -563,46 +563,37 @@ if archivo:
 #    st.success("✅ Registros actualizados")
 #    st.dataframe(df_actualizada)
 
-st.subheader("✏️ Editar asegurados")
 
 
+# ————— 4) Editor de asegurados + reescritura si cambian —————
 df_original = get_df_original()
 if not df_original.empty:
     st.subheader("✏️ Editar asegurados")
     editable_cols = ["CÉDULA", "TELÉFONO OFICINA", "CORREO ELECTRÓNICO", "OBSERVACIÓN"]
-    df_editable = st.data_editor(df_original[editable_cols], use_container_width=True)
+    df_editable = st.data_editor(
+        df_original[editable_cols],
+        num_rows="dynamic",
+        use_container_width=True,
+    )
 
     if st.button("💾 Guardar cambios"):
-        # 1) Aplica los cambios al DataFrame
+        # 1) Aplica cambios a df_original
         for _, row in df_editable.iterrows():
             mask = df_original["CÉDULA"] == row["CÉDULA"]
             df_original.loc[mask, editable_cols[1:]] = row[editable_cols[1:]].values
 
-        # 2) Guarda en session_state
+        # 2) Guarda en sesión
         set_df_original(df_original)
-        st.success("Cambios guardados ✔️")
 
-        # 3) ¡Ahora también reescribe la hoja en Google Sheets!
-        #    Asegúrate de tener ya tu 'hoja_asegurados' creada y autorizada arriba.
-        #    Reutilizamos la normalización que usamos al subir inicialmente:
-
+        # 3) Reescribe hoja en Google Sheets
         df_upd = df_original.copy()
-
-        # Formatear fechas (si tuvieras alguna columna datetime)
-        for c in df_upd.select_dtypes(include=["datetime64[ns]"]):
+        for c in df_upd.select_dtypes(include=["datetime64", "datetime64[ns]"]):
             df_upd[c] = df_upd[c].dt.strftime("%Y-%m-%d")
-
-        # Llenar NaN/NaT
-        df_upd = df_upd.fillna("")
-
-        # Convertir todo a string
-        df_upd = df_upd.astype(str)
-
-        # Prepara datos para update
+        df_upd = df_upd.fillna("").astype(str)
         values = [df_upd.columns.tolist()] + df_upd.values.tolist()
 
-        # Limpia y sube
         hoja_asegurados.clear()
         hoja_asegurados.update(values)
 
-        st.success("✅ Google Sheets actualizado")
+        st.success("✅ Cambios guardados y hoja actualizada")
+        st.dataframe(df_original.head(10))
