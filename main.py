@@ -582,7 +582,7 @@ from streamlit import column_config
 # ————— 4) Editor de asegurados + reescritura si cambian —————
 df_original = get_df_original()
 if not df_original.empty:
-    st.subheader("✏️ Editar asegurados")
+    st.subheader("Editar asegurados")
 
     # Las columnas que SÍ dejamos editar:
     editable_cols = [
@@ -639,7 +639,7 @@ EDITABLE_COLS = [
 # — Bloque de búsqueda y edición puntual —
 df_original = get_df_original()
 if not df_original.empty:
-    st.subheader("🔎 Buscar y editar un asegurado")
+    st.subheader("Buscar y editar un asegurado")
 
     # 1) Input de búsqueda por ID o Póliza
     buscar_id    = st.text_input("Buscar por ID INSURATLAN")
