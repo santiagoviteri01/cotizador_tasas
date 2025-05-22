@@ -553,4 +553,12 @@ if uploaded_file:
     df_actualizada = actualizar_datos_poliza(df_original, df_respuesta)
     st.success("✅ Registros actualizados")
     st.dataframe(df_actualizada)
+st.subheader("✏️ Editar asegurados")
+editable_cols = ["CÉDULA", "TELÉFONO OFICINA", "CORREO ELECTRÓNICO", "OBSERVACIÓN"]
+df_editable = st.data_editor(df_original[editable_cols], use_container_width=True)
 
+if st.button("💾 Guardar cambios"):
+    for i, row in df_editable.iterrows():
+        ced = row["CÉDULA"]
+        df_original.loc[df_original["CÉDULA"] == ced, editable_cols[1:]] = row[editable_cols[1:]]
+    st.success("Cambios guardados")
