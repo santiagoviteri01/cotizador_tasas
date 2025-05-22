@@ -486,17 +486,14 @@ st.title("Cotizador Crediprime")
 google_creds_dict = {
     "type": "service_account",
     "project_id": "tu_project_id",
-    "private_key_id": st.secrets["google"]["private_key_id"],
-    "private_key": st.secrets["google"]["private_key"],
-    "client_email": st.secrets["google"]["client_email"],
-    "client_id": st.secrets["google"]["client_id"],
+    "private_key_id": st.secrets["general"]["private_key_id"],
+    "private_key": st.secrets["general"]["private_key"],
+    "client_email": st.secrets["general"]["client_email"],
+    "client_id": st.secrets["general"]["client_id"],
 }
 creds = Credentials.from_service_account_info(google_creds_dict)
 
-# AWS creds
-AWS_KEY = st.secrets["aws"]["AWS_ACCESS_KEY_ID"]
-AWS_SECRET = st.secrets["aws"]["AWS_SECRET_ACCESS_KEY"]
-AWS_BUCKET = st.secrets["aws"]["AWS_BUCKET_NAME"]
+
 archivo = st.file_uploader("Carga la base de entrada (.xlsx)", type=["xlsx"])
 
 if archivo:
