@@ -564,7 +564,7 @@ def persistir_en_sheet(df: pd.DataFrame):
 archivo = st.file_uploader("1️⃣ Carga la base nueva (.xlsx)", type=["xlsx"])
 if archivo:
     df_nueva = pd.read_excel(archivo)
-    df_calc  = calcular_cotizacion(df_orden)
+    df_calc  = calcular_cotizacion(df_nueva)
     df_orden = reorganizar_columnas_salida(df_calc)
     # 1) Fusiona: filas nuevas + actualización de existentes
     combinado = pd.concat([df_original, df_orden], ignore_index=True)
