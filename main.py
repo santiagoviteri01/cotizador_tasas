@@ -484,7 +484,7 @@ st.set_page_config(page_title="Cotizador Crediprime")
 st.title("Cotizador Crediprime")
 google_creds_dict = st.secrets["general"]
 creds = Credentials.from_service_account_info(google_creds_dict)
-
+client = gspread.authorize(creds)
 
 archivo = st.file_uploader("Carga la base de entrada (.xlsx)", type=["xlsx"])
 
