@@ -671,17 +671,37 @@ if not df_original.empty:
 
         # 5) Guardar cambios
         if st.button("💾 Guardar cambios en este registro"):
-            # Volvemos a índice columna para leer ID
+            # Reseteamos índice para recuperar ID
             df_edit = df_edit.reset_index()
             id_ins = df_edit.at[0, "ID INSURATLAN"]
 
-            # Aplicamos cada campo editado de vuelta a df_original
+            # 1) Volcamos cambios a df_original
             mask = df_original["ID INSURATLAN"] == id_ins
             for col in EDITABLE_COLS:
                 df_original.loc[mask, col] = df_edit.at[0, col]
 
-            # Guardamos en sesión y, opcionalmente, en Google Sheets...
+            # 2) Guardamos en sesión
             set_df_original(df_original)
 
-            st.success(f"Registro ID {id_ins} actualizado.")
+            # 3) Normalizamos y reescribimos en Google Sheets
+            df_upd = df_original.copy()
+
+            # ⇨ Formatear columnas datetime como YYYY-MM-DD
+            for c in df_upd.select_dtypes(include=["datetime64", "datetime64[ns]"]):
+                df_upd[c] = df_upd[c].dt.strftime("%Y-%m-%d")
+
+            # ⇨ Reemplazar NaT/NaN por cadena vacía
+            df_upd = df_upd.fillna("")
+
+            # ⇨ Convertir todo a str puro
+            df_upd = df_upd.astype(str)
+
+            # ⇨ Preparar payload para Google Sheets
+            values = [df_upd.columns.tolist()] + df_upd.values.tolist()
+
+            # ⇨ Limpiar la hoja y escribir los datos
+            hoja_asegurados.clear()
+            hoja_asegurados.update(values)
+
+            st.success(f"✅ Registro {id_ins} actualizado local y en Google Sheets")
             st.dataframe(df_original.loc[mask])
