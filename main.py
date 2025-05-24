@@ -707,3 +707,29 @@ if not df_original.empty:
 
             st.success(f"✅ Registro {id_ins} actualizado local y en Google Sheets")
             st.dataframe(df_original.loc[mask])
+
+df_to_download = st.session_state.get("df_original", pd.DataFrame())
+
+# Si tienes datos, ofrécelos
+if not df_to_download.empty:
+    # Opción Excel
+    buffer = io.BytesIO()
+    df_to_download.to_excel(buffer, index=False, engine="openpyxl")
+    buffer.seek(0)
+    st.download_button(
+        label="📥 Descargar base completa (Excel)",
+        data=buffer,
+        file_name="base_insurprime.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+    # Opción CSV (descomenta si la prefieres)
+    # csv = df_to_download.to_csv(index=False).encode("utf-8")
+    # st.download_button(
+    #     label="📥 Descargar base completa (CSV)",
+    #     data=csv,
+    #     file_name="base_insurprime.csv",
+    #     mime="text/csv"
+    # )
+else:
+    st.info("La base está vacía; no hay nada para descargar.")
