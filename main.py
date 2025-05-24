@@ -559,7 +559,10 @@ def persistir_en_sheet(df: pd.DataFrame):
     # Limpia la hoja y sube todo
     hoja.clear()
     hoja.update(values)
-
+    
+df_sheet = cargar_hoja_completa()
+if "df_original" not in st.session_state:
+    set_df_original(df_sheet)   # o directamente: st.session_state["df_original"]=df_sheet
 # ————— 4) Uploader de nueva base + merge —————
 archivo = st.file_uploader("1️⃣ Carga la base nueva (.xlsx)", type=["xlsx"])
 if archivo:
