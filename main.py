@@ -568,7 +568,7 @@ df_sheet.columns = df_sheet.columns.str.strip().str.upper()
 if "df_original" not in st.session_state:
     st.session_state["df_original"] = df_sheet
 
-st.write(">>> columnas en df_original:", st.session_state["df_original"].columns.tolist())
+#st.write(">>> columnas en df_original:", st.session_state["df_original"].columns.tolist())
    
 # ————— 4) Uploader de nueva base + merge —————
 archivo = st.file_uploader("1️⃣ Carga la base nueva (.xlsx)", type=["xlsx"])
@@ -589,8 +589,8 @@ if archivo:
         how='left'
     )
     st.write(df_nueva)
-    df_nueva = df_nueva.drop(columns=['NÚMERO IDENTIFICACIÓN_y']) \
-                   .rename(columns={'NÚMERO IDENTIFICACIÓN_x':'NÚMERO IDENTIFICACIÓN'})
+    #df_nueva = df_nueva.drop(columns=['NÚMERO IDENTIFICACIÓN_y']) \
+    #               .rename(columns={'NÚMERO IDENTIFICACIÓN_x':'NÚMERO IDENTIFICACIÓN'})
 
     # 4) Ahora calculamos, sólo se crearán IDs donde `ID INSURATLAN` sea NaN
     df_calc  = calcular_cotizacion(df_nueva)
