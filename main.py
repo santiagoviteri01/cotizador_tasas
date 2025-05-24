@@ -702,8 +702,8 @@ if not df_original.empty:
             values = [df_upd.columns.tolist()] + df_upd.values.tolist()
 
             # ⇨ Limpiar la hoja y escribir los datos
-            hoja_asegurados.clear()
-            hoja_asegurados.update(values)
+            hoja.clear()
+            hoja.update(values)
 
             st.success(f"✅ Registro {id_ins} actualizado local y en Google Sheets")
             st.dataframe(df_original.loc[mask])
