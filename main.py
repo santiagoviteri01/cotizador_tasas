@@ -588,6 +588,7 @@ if archivo:
         right_on='NÚMERO IDENTIFICACIÓN',    # la que ya está en df_original
         how='left'
     )
+    st.write(df_nueva)
     df_nueva = df_nueva.drop(columns=['NÚMERO IDENTIFICACIÓN_y']) \
                    .rename(columns={'NÚMERO IDENTIFICACIÓN_x':'NÚMERO IDENTIFICACIÓN'})
 
