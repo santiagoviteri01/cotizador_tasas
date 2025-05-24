@@ -569,13 +569,16 @@ if archivo:
     # 2) Traemos la base original de sesión (la misma que usas para persistir)
     df_original = get_df_original()
 
-    # 3) Merge para preservar IDs antiguos:
-    #    asumimos que ambas tablas tienen la columna 'IDENTIFICACION'
+
+    # 3) Hacemos merge usando la columna correcta de df_original
     df_nueva = df_nueva.merge(
-        df_original[['IDENTIFICACION','ID INSURATLAN']],
-        on='IDENTIFICACION',
+        df_original[['NÚMERO IDENTIFICACIÓN','ID INSURATLAN']],
+        left_on='IDENTIFICACION',            # de tu archivo de entrada
+        right_on='NÚMERO IDENTIFICACIÓN',    # la que ya está en df_original
         how='left'
     )
+    df_nueva = df_nueva.drop(columns=['NÚMERO IDENTIFICACIÓN_y']) \
+                   .rename(columns={'NÚMERO IDENTIFICACIÓN_x':'NÚMERO IDENTIFICACIÓN'})
 
     # 4) Ahora calculamos, sólo se crearán IDs donde `ID INSURATLAN` sea NaN
     df_calc  = calcular_cotizacion(df_nueva)
