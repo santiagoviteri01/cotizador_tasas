@@ -568,6 +568,7 @@ if archivo:
 
     # 2) Traemos la base original de sesión (la misma que usas para persistir)
     df_original = get_df_original()
+    st.write(df_original)
 
 
     # 3) Hacemos merge usando la columna correcta de df_original
