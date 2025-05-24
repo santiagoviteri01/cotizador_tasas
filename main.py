@@ -573,7 +573,7 @@ if archivo:
 
     # 3) Hacemos merge usando la columna correcta de df_original
     df_nueva = df_nueva.merge(
-        df_original[['NÚMERO IDENTIFICACIÓN','ID INSURATLAN']],
+        df_original[['ID INSURATLAN','NÚMERO IDENTIFICACIÓN']],
         left_on='IDENTIFICACION',            # de tu archivo de entrada
         right_on='NÚMERO IDENTIFICACIÓN',    # la que ya está en df_original
         how='left'
