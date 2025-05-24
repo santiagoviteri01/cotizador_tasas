@@ -526,18 +526,25 @@ except gspread.WorksheetNotFound:
 # ————— 2) Carga inicial de la hoja como DataFrame “original” —————
 @st.cache_data(ttl=300)
 def cargar_hoja_completa():
-    # Obtén todas las celdas
+    # 1) Traemos todas las celdas
     datos = hoja.get_all_values()
+    cols  = datos[0]
+    rows  = datos[1:]
 
-    # La primera fila son los nombres de columna
-    cols = datos[0]
-    # El resto son los datos
-    rows = datos[1:]
+    # 2) DataFrame y limpieza de filas sin ID
+    df = pd.DataFrame(rows, columns=cols).dropna(
+        how="all", subset=["ID INSURATLAN"]
+    )
 
-    # Crea el DataFrame y limpia filas vacías
-    df = pd.DataFrame(rows, columns=cols).dropna(how="all", subset=["ID INSURATLAN"])
-    # Convierte tipos básicos
-    df["ID INSURATLAN"] = df["ID INSURATLAN"].astype(int)
+    # 3) Conversión robusta a numérico:
+    #    - pd.to_numeric() parsea "50009.0"→50009.0
+    #    - errors="coerce" convierte valores no numéricos en NaN
+    #    - luego astype(int) convierte los floats *válidos* a ints
+    df["ID INSURATLAN"] = (
+        pd.to_numeric(df["ID INSURATLAN"], errors="coerce")
+          .astype(int)
+    )
+
     return df
 
 # Uso:
