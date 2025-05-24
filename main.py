@@ -603,7 +603,14 @@ if archivo:
 
     # 2) Traemos la base original de sesión (la misma que usas para persistir)
     df_original = get_df_original()
-    st.write(df_original)
+    df_nueva["IDENTIFICACION"] = df_nueva["IDENTIFICACION"].astype(str).str.strip()
+    df_original["NÚMERO IDENTIFICACIÓN"] = (
+        df_original["NÚMERO IDENTIFICACIÓN"]
+          .astype(str)
+          .str.strip()
+    )
+
+    
 
 
     # 3) Hacemos merge usando la columna correcta de df_original
