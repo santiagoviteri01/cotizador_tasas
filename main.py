@@ -561,8 +561,15 @@ def persistir_en_sheet(df: pd.DataFrame):
     hoja.update(values)
     
 df_sheet = cargar_hoja_completa()
+# 2) Normalizo encabezados: quito espacios y pongo todo en mayúsculas
+df_sheet.columns = df_sheet.columns.str.strip().str.upper()
+
+# 3) Si no existe en sesión, lo guardo
 if "df_original" not in st.session_state:
-    set_df_original(df_sheet)   # o directamente: st.session_state["df_original"]=df_sheet
+    st.session_state["df_original"] = df_sheet
+
+st.write(">>> columnas en df_original:", st.session_state["df_original"].columns.tolist())
+   
 # ————— 4) Uploader de nueva base + merge —————
 archivo = st.file_uploader("1️⃣ Carga la base nueva (.xlsx)", type=["xlsx"])
 if archivo:
