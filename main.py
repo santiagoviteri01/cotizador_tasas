@@ -146,7 +146,25 @@ def actualizar_datos_poliza(df_base: pd.DataFrame, df_respuesta: pd.DataFrame) -
             df_base.update(df_respuesta[[col]])
 
     return df_base.reset_index()
+def obtener_TEC(row):
+    aseguradora = row["ASEGURADORA"].upper()
+    valor = row["VALOR TOTAL ASEGURADO"]
+    
+    if "MAPFRE" in aseguradora:
+        # clasificamos por tasa y recuperamos la banda
+        tipo = clasificar_tipo_vehiculo_mapfre_por_tasa(row["CIUDAD"], row["TASA SEGURO"])
+        tasas = obtener_tasas_validas_mapfre(row["CIUDAD"], tipo, valor)
+    elif "AIG" in aseguradora:
+        # aquí 'uso' podrías usar row["USO VEHÍCULO"] o clasificar_uso_vehiculo
+        uso   = row.get("USO VEHÍCULO", "")
+        tasas = obtener_tasas_validas_aig(valor, uso, row.get("MODELO",""))
+    elif "ZURICH" in aseguradora:
+        tasas = obtener_tasas_validas_zurich(valor, row.get("MODELO",""))
+    else:
+        return np.nan
 
+    # devolvemos la primera tasa de la lista
+    return tasas[0] if tasas else np.nan
 # Validación de tasa seguro
 def validar_tasa_seguro(row, aseguradora):
     valor = row["VALOR TOTAL ASEGURADO"]
@@ -337,7 +355,7 @@ def calcular_cotizacion(df):
     df["ASEGURADORA"] = df["ASEGURADORA"].str.upper().str.strip()
 
     # TEC y MARK UP por aseguradora
-    df["TEC"] = df["TASA SEGURO"]
+    df["TEC"] = df.apply(obtener_TEC, axis=1)
     df["MARK_UP_%"] = df.apply(
         lambda row:
             obtener_mark_up_mapfre(row) if "MAPFRE" in row["ASEGURADORA"]
