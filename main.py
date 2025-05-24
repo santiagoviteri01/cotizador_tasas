@@ -563,19 +563,34 @@ def persistir_en_sheet(df: pd.DataFrame):
 # ————— 4) Uploader de nueva base + merge —————
 archivo = st.file_uploader("1️⃣ Carga la base nueva (.xlsx)", type=["xlsx"])
 if archivo:
+    # 1) Leemos la base nueva
     df_nueva = pd.read_excel(archivo)
+
+    # 2) Traemos la base original de sesión (la misma que usas para persistir)
+    df_original = get_df_original()
+
+    # 3) Merge para preservar IDs antiguos:
+    #    asumimos que ambas tablas tienen la columna 'IDENTIFICACION'
+    df_nueva = df_nueva.merge(
+        df_original[['IDENTIFICACION','ID INSURATLAN']],
+        on='IDENTIFICACION',
+        how='left'
+    )
+
+    # 4) Ahora calculamos, sólo se crearán IDs donde `ID INSURATLAN` sea NaN
     df_calc  = calcular_cotizacion(df_nueva)
     df_orden = reorganizar_columnas_salida(df_calc)
-    # 1) Fusiona: filas nuevas + actualización de existentes
+
+    # 5) Fusionamos con la original y eliminamos duplicados por ID
     combinado = pd.concat([df_original, df_orden], ignore_index=True)
     combinado = combinado.drop_duplicates(subset=["ID INSURATLAN"], keep="last")
 
-    # 2) Refresca la vista y la hoja
-    df_original = combinado
-    persistir_en_sheet(df_original)
+    # 6) Persistimos y mostramos
+    set_df_original(combinado)
+    persistir_en_sheet(combinado)
 
     st.success("✅ Base original actualizada con la nueva carga")
-    st.dataframe(df_original)
+    st.dataframe(combinado)
 
 # ————— 5) Uploader de respuestas de póliza —————
 uploaded_resp = st.file_uploader("2️⃣ Sube respuesta de aseguradora", type=["xlsx"])
