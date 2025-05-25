@@ -755,6 +755,8 @@ with tab2:
                 persistir_en_sheet(df_original)
         
                 st.success("✅ Cambios guardados en Google Sheets")
+                st.experimental_rerun()
+
         
                 # 5) Mostrar el registro ya actualizado
                 registro_act = df_original[mask_upd].iloc[0]
