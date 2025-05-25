@@ -596,17 +596,18 @@ if "df_original" not in st.session_state:
 # 1) Define las pestañas y la sesión
 tabs = ["📂 Carga / Descarga", "🔍 Buscar / Editar"]
 if "active_tab" not in st.session_state:
-    st.session_state.active_tab = tabs[1]  # arrancar en la segunda pestaña
+    st.session_state.active_tab = tabs[1]
 
-# 2) Muestra un widget para elegir la pestaña––esto preserva la selección
-st.session_state.active_tab = st.radio(
+# El radio con key="active_tab" mantiene siempre la selección
+active = st.radio(
     "Selecciona sección:",
     options=tabs,
-    index=tabs.index(st.session_state.active_tab),
+    key="active_tab",
     horizontal=True
 )
 
-if st.session_state.active_tab == tabs[0]:
+# ————— Pestaña 1 —————
+if active == tabs[0]:
     st.header("1️⃣ Carga de Bases")   
     # ————— 4) Uploader de nueva base + merge —————
     archivo = st.file_uploader("1️⃣ Carga la base nueva (.xlsx)", type=["xlsx"])
