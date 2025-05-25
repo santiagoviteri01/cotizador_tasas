@@ -696,16 +696,16 @@ with tab2:
         "NÚMERO FACTURA VEHÍCULOS"
     ]
 
-    # Cargamos la base desde sesión
+    # 1) Cargamos la base desde sesión
     df_original = st.session_state["df_original"]
 
-    # Inputs de búsqueda
+    # 2) Inputs de búsqueda
     buscar_id      = st.text_input("🔎 ID INSURATLAN")
     buscar_poliza  = st.text_input("🔎 Número de Póliza")
     buscar_cedula  = st.text_input("🔎 Número de Cédula")
     buscar_nombre  = st.text_input("🔎 Nombre Completo (o parte)")
 
-    # Construimos una máscara que empiece siendo True en todas las filas
+    # 3) Construimos la máscara combinada
     mask = pd.Series(True, index=df_original.index)
     if buscar_id:
         mask &= df_original["ID INSURATLAN"].astype(str) == buscar_id.strip()
@@ -716,54 +716,46 @@ with tab2:
     if buscar_nombre:
         mask &= df_original["NOMBRE COMPLETO"].str.contains(buscar_nombre.strip(), case=False, na=False)
 
-    # Aplicamos la máscara para filtrar
     df_filtrado = df_original[mask]
 
+    # 4) Si no hay resultados…
     if df_filtrado.empty:
         st.info("No se encontró ningún asegurado con esos criterios.")
-    else:
-        registro = df_filtrado.iloc[0]
-        st.subheader(f"{registro['NOMBRE COMPLETO']} (ID {registro['ID INSURATLAN']})")
-        st.dataframe(registro.to_frame().T)
-        st.markdown("---")
+        st.stop()
 
-        # Preparamos el formulario de edición
-        df_to_edit = registro[EDITABLE_COLS].to_frame().T.astype(str)
-        form = st.form("form_editar")
-        df_edit = form.data_editor(
+    # 5) Tomamos el primer resultado
+    registro = df_filtrado.iloc[0]
+    st.subheader(f"{registro['NOMBRE COMPLETO']} (ID {registro['ID INSURATLAN']})")
+    st.dataframe(registro.to_frame().T)
+    st.markdown("---")
+
+    # 6) Preparamos el formulario
+    df_to_edit = registro[EDITABLE_COLS].to_frame().T.astype(str)
+    with st.form("form_editar"):
+        df_edit = st.data_editor(
             df_to_edit,
             num_rows="fixed",
             use_container_width=True
         )
+        submitted = st.form_submit_button("💾 Guardar Cambios")
 
-        # Función que se ejecuta al pulsar guardar
-        def _guardar_cambios(edited: pd.DataFrame):
-            # 1) Resetear índice para acceder por posición
-            edited = edited.reset_index(drop=True)
-            # 2) Volcar cambios en df_original
-            id_ins   = registro["ID INSURATLAN"]
-            mask_upd = df_original["ID INSURATLAN"] == id_ins
-            for col in EDITABLE_COLS:
-                df_original.loc[mask_upd, col] = edited.at[0, col]
-            # 3) Guardar en sesión y en Google Sheets
-            st.session_state["df_original"] = df_original
-            persistir_en_sheet(df_original)
-            # 4) Marcar que hemos actualizado
-            st.session_state["registro_actualizado"] = True
+    # 7) Si el usuario envía el formulario, aplicamos los cambios de inmediato
+    if submitted:
+        # a) Volcar los valores editados en df_original
+        id_ins   = registro["ID INSURATLAN"]
+        mask_upd = df_original["ID INSURATLAN"] == id_ins
+        for col in EDITABLE_COLS:
+            df_original.loc[mask_upd, col] = df_edit.iloc[0][col]
 
-        # Botón de enviar dentro del form, llamando a la función
-        form.form_submit_button(
-            "💾 Guardar Cambios",
-            on_click=lambda ed=df_edit: _guardar_cambios(ed)
-        )
+        # b) Actualizar sesión y Google Sheets
+        st.session_state["df_original"] = df_original
+        persistir_en_sheet(df_original)
 
-        # Si acabamos de guardar, mostramos el éxito y el registro actualizado
-        if st.session_state.get("registro_actualizado", False):
-            st.success("✅ Cambios guardados en Google Sheets")
-            registro_act = df_original[df_original["ID INSURATLAN"] == registro["ID INSURATLAN"]].iloc[0]
-            st.dataframe(registro_act.to_frame().T)
-            # Reiniciamos el flag para la próxima vez
-            st.session_state["registro_actualizado"] = False
+        st.success("✅ Cambios guardados en Google Sheets")
+
+        # c) Re-mostrar el registro actualizado
+        registro_act = df_original[mask_upd].iloc[0]
+        st.dataframe(registro_act.to_frame().T)
 
 
 
