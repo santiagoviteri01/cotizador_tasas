@@ -737,34 +737,34 @@ with tab2:
                 num_rows="fixed",
                 use_container_width=True
             )
-        if st.form_submit_button("💾 Guardar Cambios"):
-            # 1) Reseteamos índice para que el único row pase a ser 0
-            df_edit = df_edit.reset_index(drop=True)
-        
-            # 2) Preparamos máscara y volcamos los cambios en df_original
-            id_ins = registro["ID INSURATLAN"]
-            mask_upd = df_original["ID INSURATLAN"] == id_ins
-            for col in EDITABLE_COLS:
-                df_original.loc[mask_upd, col] = df_edit.at[0, col]
-        
-            # 3) Actualizamos el estado de sesión
-            st.session_state["df_original"] = df_original
-        
-            # 4) Preparamos el DataFrame para subirlo a Google Sheets
-            df_upd = df_original.copy()
-            #    a) Convertir datetime64 a string YYYY-MM-DD
-            for c in df_upd.select_dtypes(include=["datetime64[ns]"]):
-                df_upd[c] = df_upd[c].dt.strftime("%Y-%m-%d")
-            #    b) Reemplazar NaN/NaT con cadenas vacías y forzar todo a str
-            df_upd = df_upd.fillna("").astype(str)
-            #    c) Construir la lista de valores (cabecera + filas)
-            values = [df_upd.columns.tolist()] + df_upd.values.tolist()
-        
-            # 5) Limpiar y actualizar la hoja en Google Sheets
-            hoja.clear()
-            hoja.update(values)
-        
-            st.success("✅ Cambios guardados en Google Sheets")
+            if st.form_submit_button("💾 Guardar Cambios"):
+                # 1) Reseteamos índice para que el único row pase a ser 0
+                df_edit = df_edit.reset_index(drop=True)
+            
+                # 2) Preparamos máscara y volcamos los cambios en df_original
+                id_ins = registro["ID INSURATLAN"]
+                mask_upd = df_original["ID INSURATLAN"] == id_ins
+                for col in EDITABLE_COLS:
+                    df_original.loc[mask_upd, col] = df_edit.at[0, col]
+            
+                # 3) Actualizamos el estado de sesión
+                st.session_state["df_original"] = df_original
+            
+                # 4) Preparamos el DataFrame para subirlo a Google Sheets
+                df_upd = df_original.copy()
+                #    a) Convertir datetime64 a string YYYY-MM-DD
+                for c in df_upd.select_dtypes(include=["datetime64[ns]"]):
+                    df_upd[c] = df_upd[c].dt.strftime("%Y-%m-%d")
+                #    b) Reemplazar NaN/NaT con cadenas vacías y forzar todo a str
+                df_upd = df_upd.fillna("").astype(str)
+                #    c) Construir la lista de valores (cabecera + filas)
+                values = [df_upd.columns.tolist()] + df_upd.values.tolist()
+            
+                # 5) Limpiar y actualizar la hoja en Google Sheets
+                hoja.clear()
+                hoja.update(values)
+            
+                st.success("✅ Cambios guardados en Google Sheets")
 
 
 
