@@ -735,18 +735,18 @@ with tab2:
                 use_container_width=True
             )
             if st.form_submit_button("💾 Guardar Cambios"):
-                mask_upd = df_original["ID INSURATLAN"] == registro["ID INSURATLAN"]
+                # 1) Reseteamos índice para que el único row pase a ser 0
+                df_edit = df_edit.reset_index(drop=True)
+        
+                # 2) Preparamos máscara y volcamos los cambios
+                id_ins = registro["ID INSURATLAN"]
+                mask_upd = df_original["ID INSURATLAN"] == id_ins
                 for col in EDITABLE_COLS:
                     df_original.loc[mask_upd, col] = df_edit.at[0, col]
-                # Persistir en sesión y en Google Sheets
+        
+                # 3) Persistir en sesión y Google Sheets...
                 st.session_state["df_original"] = df_original
-                df_upd = df_original.copy()
-                for c in df_upd.select_dtypes(include=["datetime64[ns]"]):
-                    df_upd[c] = df_upd[c].dt.strftime("%Y-%m-%d")
-                df_upd = df_upd.fillna("").astype(str)
-                values = [df_upd.columns.tolist()] + df_upd.values.tolist()
-                hoja.clear()
-                hoja.update(values)
+                # ... resto de tu código de persistencia
                 st.success("✅ Cambios guardados")
 
         st.markdown("---")
