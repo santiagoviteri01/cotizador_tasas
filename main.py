@@ -696,25 +696,18 @@ if active == tabs[0]:
     
         
 else:
-    st.header("2️⃣ Buscar y Editar Asegurados")
+    st.header("🔍 Buscar y Editar Asegurados")
 
-    EDITABLE_COLS = [
-        "TELEFONO",
-        "CORREO ELECTRONICO",
-        "OBSERVACIÓN",
-        "ESTADO PÓLIZA",
-        "NÚMERO FACTURA VEHÍCULOS"
-    ]
+    # ——— Filtros en un expander ———
+    with st.expander("🔎 Filtros de Búsqueda", expanded=True):
+        col1, col2 = st.columns(2)
+        buscar_id     = col1.text_input("ID INSURATLAN")
+        buscar_poliza = col2.text_input("Número de Póliza")
+        buscar_cedula = col1.text_input("Número de Cédula")
+        buscar_nombre = col2.text_input("Nombre Completo (o parte)")
 
-    # 1) Traemos la base
+    # ——— Aplicar máscara ———
     df_original = st.session_state["df_original"]
-
-    # 2) Filtros de búsqueda
-    buscar_id      = st.text_input("🔎 ID INSURATLAN")
-    buscar_poliza  = st.text_input("🔎 Número de Póliza")
-    buscar_cedula  = st.text_input("🔎 Número de Cédula")
-    buscar_nombre  = st.text_input("🔎 Nombre Completo (o parte)")
-
     mask = pd.Series(True, index=df_original.index)
     if buscar_id:
         mask &= df_original["ID INSURATLAN"].astype(str) == buscar_id.strip()
@@ -724,46 +717,47 @@ else:
         mask &= df_original["NÚMERO IDENTIFICACIÓN"].astype(str) == buscar_cedula.strip()
     if buscar_nombre:
         mask &= df_original["NOMBRE COMPLETO"].str.contains(buscar_nombre.strip(), case=False, na=False)
-
     df_filtrado = df_original[mask]
 
+    # ——— Sin resultados ———
     if df_filtrado.empty:
-        st.info("No se encontró ningún asegurado con esos criterios.")
+        st.warning("No se encontró ningún asegurado con esos criterios.")
         st.stop()
 
-    # 3) Seleccionamos el primer registro
+    # ——— Mostrar y organizar detalles vs edición ———
     registro = df_filtrado.iloc[0]
-    st.subheader(f"{registro['NOMBRE COMPLETO']}  (ID {registro['ID INSURATLAN']})")
-    st.markdown("---")
+    st.markdown("### Detalles del Asegurado")
+    left, right = st.columns([1, 2])
 
-    # 4) Preparamos la fila para editar
-    df_to_edit = registro[EDITABLE_COLS].to_frame().T.astype(str)
+    # Columna izquierda: detalles estáticos
+    with left:
+        st.info(f"**Nombre:** {registro['NOMBRE COMPLETO']}")
+        st.info(f"**ID:** {registro['ID INSURATLAN']}")
+        st.info(f"**Cédula:** {registro['NÚMERO IDENTIFICACIÓN']}")
+        st.info(f"**Póliza:** {registro['NÚMERO PÓLIZA VEHÍCULOS']}")
 
-    # 5) Mostramos el editor y capturamos el DataFrame resultante
-    df_edit = st.data_editor(
-        df_to_edit,
-        use_container_width=True,
-        key="editor_asegurado"
-    )
-
-    # 6) Botón para guardar, en un solo clic
-    if st.button("💾 Guardar Cambios"):
-        # Volcar valores editados al df_original
-        id_ins = registro["ID INSURATLAN"]
-        mask_upd = df_original["ID INSURATLAN"] == id_ins
-        for col in EDITABLE_COLS:
-            df_original.loc[mask_upd, col] = df_edit.iloc[0][col]
-
-        # Actualizar sesión y Sheets
-        st.session_state["df_original"] = df_original
-        persistir_en_sheet(df_original)
-
-        st.success("✅ Cambios guardados en Google Sheets")
-
-        # Volver a mostrar el registro actualizado
-        registro_act = df_original[mask_upd].iloc[0]
-        st.dataframe(registro_act.to_frame().T)
-
+    # Columna derecha: editor
+    with right:
+        st.markdown("#### ✏️ Editar Campos")
+        df_to_edit = registro[EDITABLE_COLS].to_frame().T.astype(str)
+        df_to_edit.index = [registro["ID INSURATLAN"]]
+        edited = st.data_editor(
+            df_to_edit,
+            use_container_width=True,
+            key="edit_asegurado"
+        )
+        if st.button("💾 Guardar Cambios"):
+            id_ins   = registro["ID INSURATLAN"]
+            mask_upd = df_original["ID INSURATLAN"] == id_ins
+            for col in EDITABLE_COLS:
+                df_original.loc[mask_upd, col] = edited.at[id_ins, col]
+            st.session_state["df_original"] = df_original
+            persistir_en_sheet(df_original)
+            st.success("✅ Cambios guardados")
+            # Mostrar de nuevo con ligeros resaltados
+            registro_act = df_original.loc[mask_upd].iloc[0]
+            st.markdown("### Registro Actualizado")
+            st.dataframe(registro_act.to_frame().T)
 
     
     
