@@ -743,27 +743,35 @@ else:
         st.info(f"**Cédula:** {registro['NÚMERO IDENTIFICACIÓN']}")
         st.info(f"**Póliza:** {registro['NÚMERO PÓLIZA VEHÍCULOS']}")
 
-    # Columna derecha: editor
     with right:
-        st.markdown("#### ✏️ Editar Campos")
-        df_to_edit = registro[EDITABLE_COLS].to_frame().T.astype(str)
-        df_to_edit.index = [registro["ID INSURATLAN"]]
-        edited = st.data_editor(
-            df_to_edit,
-            use_container_width=True,
-            key="edit_asegurado"
-        )
-        if st.button("💾 Guardar Cambios"):
-            id_ins   = registro["ID INSURATLAN"]
-            mask_upd = df_original["ID INSURATLAN"] == id_ins
-            for col in EDITABLE_COLS:
-                df_original.loc[mask_upd, col] = edited.at[id_ins, col]
+        st.subheader("✏️ Editar Campos")
+        # Usamos un formulario para agrupar los inputs
+        with st.form("editar_aseg_form"):
+            telefono        = st.text_input("Teléfono", registro["TELEFONO"])
+            correo          = st.text_input("Correo Electrónico", registro["CORREO ELECTRONICO"])
+            observacion     = st.text_area("Observación", registro["OBSERVACIÓN"])
+            estado_poliza   = st.selectbox(
+                "Estado de Póliza",
+                options=["POLIZA CREADA", "EN PROCESO", "CERRADA", "RECHAZADA"],
+                index=["POLIZA CREADA","EN PROCESO","CERRADA","RECHAZADA"].index(registro["ESTADO PÓLIZA"])
+            )
+            num_factura     = st.text_input("Número Factura Vehículos", registro["NÚMERO FACTURA VEHÍCULOS"])
+            submitted = st.form_submit_button("💾 Guardar Cambios")
+
+        if submitted:
+            # Actualizamos df_original y Sheets
+            mask_upd = df_original["ID INSURATLAN"] == registro["ID INSURATLAN"]
+            df_original.loc[mask_upd, "TELEFONO"]               = telefono
+            df_original.loc[mask_upd, "CORREO ELECTRONICO"]      = correo
+            df_original.loc[mask_upd, "OBSERVACIÓN"]             = observacion
+            df_original.loc[mask_upd, "ESTADO PÓLIZA"]           = estado_poliza
+            df_original.loc[mask_upd, "NÚMERO FACTURA VEHÍCULOS"] = num_factura
+
             st.session_state["df_original"] = df_original
             persistir_en_sheet(df_original)
-            st.success("✅ Cambios guardados")
-            # Mostrar de nuevo con ligeros resaltados
-            registro_act = df_original.loc[mask_upd].iloc[0]
-            st.markdown("### Registro Actualizado")
+            st.success("✅ Cambios guardados en Google Sheets")
+            # Mostrar los nuevos datos
+            registro_act = df_original[mask_upd].iloc[0]
             st.dataframe(registro_act.to_frame().T)
 
     
