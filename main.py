@@ -593,10 +593,20 @@ df_sheet.columns = df_sheet.columns.str.strip().str.upper()
 if "df_original" not in st.session_state:
     st.session_state["df_original"] = df_sheet
 
-#st.write(">>> columnas en df_original:", st.session_state["df_original"].columns.tolist())
-tab1, tab2 = st.tabs(["📂 Carga de Archivos", "🔍 Buscar / Editar Asegurados"])
+# 1) Define las pestañas y la sesión
+tabs = ["📂 Carga / Descarga", "🔍 Buscar / Editar"]
+if "active_tab" not in st.session_state:
+    st.session_state.active_tab = tabs[1]  # arrancar en la segunda pestaña
 
-with tab1:
+# 2) Muestra un widget para elegir la pestaña––esto preserva la selección
+st.session_state.active_tab = st.radio(
+    "Selecciona sección:",
+    options=tabs,
+    index=tabs.index(st.session_state.active_tab),
+    horizontal=True
+)
+
+if st.session_state.active_tab == tabs[0]:
     st.header("1️⃣ Carga de Bases")   
     # ————— 4) Uploader de nueva base + merge —————
     archivo = st.file_uploader("1️⃣ Carga la base nueva (.xlsx)", type=["xlsx"])
@@ -684,7 +694,7 @@ with tab1:
         st.info("La base está vacía; no hay nada para descargar.")
     
         
-with tab2:
+else:
     st.header("2️⃣ Buscar y Editar Asegurados")
 
     EDITABLE_COLS = [
