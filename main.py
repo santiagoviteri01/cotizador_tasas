@@ -755,7 +755,7 @@ with tab2:
                 persistir_en_sheet(df_original)
         
                 st.success("✅ Cambios guardados en Google Sheets")
-                st.experimental_rerun()
+                st.rerun()
 
         
                 # 5) Mostrar el registro ya actualizado
