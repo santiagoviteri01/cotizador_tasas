@@ -687,7 +687,6 @@ with tab1:
 with tab2:
     st.header("2️⃣ Buscar y Editar Asegurados")
 
-    # Columnas editables
     EDITABLE_COLS = [
         "TELEFONO",
         "CORREO ELECTRONICO",
@@ -696,16 +695,15 @@ with tab2:
         "NÚMERO FACTURA VEHÍCULOS"
     ]
 
-    # Traer base de sesión
+    # 1) Traemos la base
     df_original = st.session_state["df_original"]
 
-    # Inputs de búsqueda
+    # 2) Filtros de búsqueda
     buscar_id      = st.text_input("🔎 ID INSURATLAN")
     buscar_poliza  = st.text_input("🔎 Número de Póliza")
     buscar_cedula  = st.text_input("🔎 Número de Cédula")
     buscar_nombre  = st.text_input("🔎 Nombre Completo (o parte)")
 
-    # Filtrado combinado
     mask = pd.Series(True, index=df_original.index)
     if buscar_id:
         mask &= df_original["ID INSURATLAN"].astype(str) == buscar_id.strip()
@@ -722,34 +720,37 @@ with tab2:
         st.info("No se encontró ningún asegurado con esos criterios.")
         st.stop()
 
-    # Tomar primer resultado
+    # 3) Seleccionamos el primer registro
     registro = df_filtrado.iloc[0]
     st.subheader(f"{registro['NOMBRE COMPLETO']}  (ID {registro['ID INSURATLAN']})")
     st.markdown("---")
 
-    # Preparamos el mini-DataFrame para editar y le asignamos una key fija
+    # 4) Preparamos la fila para editar
     df_to_edit = registro[EDITABLE_COLS].to_frame().T.astype(str)
-    st.data_editor(df_to_edit, key="edit_asegurado", use_container_width=True)
 
-    # Botón de guardar
+    # 5) Mostramos el editor y capturamos el DataFrame resultante
+    df_edit = st.data_editor(
+        df_to_edit,
+        use_container_width=True,
+        key="editor_asegurado"
+    )
+
+    # 6) Botón para guardar, en un solo clic
     if st.button("💾 Guardar Cambios"):
-        # Leemos el DataFrame editado desde session_state
-        df_edit = st.session_state["edit_asegurado"]
-
-        # Volcamos al original
-        id_ins   = registro["ID INSURATLAN"]
+        # Volcar valores editados al df_original
+        id_ins = registro["ID INSURATLAN"]
         mask_upd = df_original["ID INSURATLAN"] == id_ins
         for col in EDITABLE_COLS:
             df_original.loc[mask_upd, col] = df_edit.iloc[0][col]
 
-        # Persistimos en sesión y en Sheets
+        # Actualizar sesión y Sheets
         st.session_state["df_original"] = df_original
         persistir_en_sheet(df_original)
 
         st.success("✅ Cambios guardados en Google Sheets")
 
-        # Mostrar el registro actualizado
-        registro_act = df_original.loc[mask_upd].iloc[0]
+        # Volver a mostrar el registro actualizado
+        registro_act = df_original[mask_upd].iloc[0]
         st.dataframe(registro_act.to_frame().T)
 
 
