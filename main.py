@@ -594,167 +594,133 @@ if "df_original" not in st.session_state:
     st.session_state["df_original"] = df_sheet
 
 #st.write(">>> columnas en df_original:", st.session_state["df_original"].columns.tolist())
-   
-# ————— 4) Uploader de nueva base + merge —————
-archivo = st.file_uploader("1️⃣ Carga la base nueva (.xlsx)", type=["xlsx"])
-if archivo:
-    # 1) Leemos la base nueva
-    df_nueva = pd.read_excel(archivo)
+tab1, tab2 = st.tabs(["📂 Carga de Archivos", "🔍 Buscar / Editar Asegurados"])
 
-    # 2) Traemos la base original de sesión (la misma que usas para persistir)
-    df_original = get_df_original()
-    df_nueva["IDENTIFICACION"] = df_nueva["IDENTIFICACION"].astype(str).str.strip()
-    df_original["NÚMERO IDENTIFICACIÓN"] = (
-        df_original["NÚMERO IDENTIFICACIÓN"]
-          .astype(str)
-          .str.strip()
-    )
+with tab1:
+    st.header("1️⃣ Carga de Bases")   
+    # ————— 4) Uploader de nueva base + merge —————
+    archivo = st.file_uploader("1️⃣ Carga la base nueva (.xlsx)", type=["xlsx"])
+    if archivo:
+        # 1) Leemos la base nueva
+        df_nueva = pd.read_excel(archivo)
+    
+        # 2) Traemos la base original de sesión (la misma que usas para persistir)
+        df_original = get_df_original()
+        df_nueva["IDENTIFICACION"] = df_nueva["IDENTIFICACION"].astype(str).str.strip()
+        df_original["NÚMERO IDENTIFICACIÓN"] = (
+            df_original["NÚMERO IDENTIFICACIÓN"]
+              .astype(str)
+              .str.strip()
+        )
+    
+        
+    
+    
+        # 3) Hacemos merge usando la columna correcta de df_original
+        df_nueva = df_nueva.merge(
+            df_original[['ID INSURATLAN','NÚMERO IDENTIFICACIÓN']],
+            left_on='IDENTIFICACION',            # de tu archivo de entrada
+            right_on='NÚMERO IDENTIFICACIÓN',    # la que ya está en df_original
+            how='left'
+        )
+        st.write(df_nueva)
+        #df_nueva = df_nueva.drop(columns=['NÚMERO IDENTIFICACIÓN_y']) \
+        #               .rename(columns={'NÚMERO IDENTIFICACIÓN_x':'NÚMERO IDENTIFICACIÓN'})
+    
+        # 4) Ahora calculamos, sólo se crearán IDs donde `ID INSURATLAN` sea NaN
+        df_calc  = calcular_cotizacion(df_nueva)
+        df_orden = reorganizar_columnas_salida(df_calc)
+    
+        # 5) Fusionamos con la original y eliminamos duplicados por ID
+        combinado = pd.concat([df_original, df_orden], ignore_index=True)
+        combinado = combinado.drop_duplicates(subset=["ID INSURATLAN"], keep="last")
+    
+        # 6) Persistimos y mostramos
+        set_df_original(combinado)
+        persistir_en_sheet(combinado)
+    
+        st.success("✅ Base original actualizada con la nueva carga")
+        st.dataframe(combinado)
+
+    # ————— 5) Uploader de respuestas de póliza —————
+    uploaded_resp = st.file_uploader("2️⃣ Sube respuesta de aseguradora", type=["xlsx"])
+    if uploaded_resp:
+        df_resp = pd.read_excel(uploaded_resp)
+        df_resp = df_resp.set_index("ID INSURATLAN").copy()
+    
+        # Actualiza sólo póliza y factura
+        for col in ["NÚMERO PÓLIZA VEHÍCULOS", "NÚMERO FACTURA VEHÍCULOS"]:
+            if col in df_resp.columns:
+                idxs = df_original["ID INSURATLAN"].isin(df_resp.index)
+                df_original.loc[idxs, col] = df_original.loc[idxs, "ID INSURATLAN"].map(df_resp[col])
+    
+        # Persiste cambios
+        persistir_en_sheet(df_original)
+        st.success("✅ Pólizas y facturas actualizadas")
+        st.dataframe(df_original)
+    df_to_download = st.session_state.get("df_original", pd.DataFrame())
+    # Si tienes datos, ofrécelos
+    if not df_to_download.empty:
+        # Opción Excel
+        buffer = io.BytesIO()
+        df_to_download.to_excel(buffer, index=False, engine="openpyxl")
+        buffer.seek(0)
+        st.download_button(
+            label="📥 Descargar base completa (Excel)",
+            data=buffer,
+            file_name="base_insurprime.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    
+        # Opción CSV (descomenta si la prefieres)
+        # csv = df_to_download.to_csv(index=False).encode("utf-8")
+        # st.download_button(
+        #     label="📥 Descargar base completa (CSV)",
+        #     data=csv,
+        #     file_name="base_insurprime.csv",
+        #     mime="text/csv"
+        # )
+    else:
+        st.info("La base está vacía; no hay nada para descargar.")
+    
+        
+with tab2:
+    st.header("2️⃣ Buscar y Editar Asegurados")
+
+    EDITABLE_COLS = [
+        "TELEFONO",
+        "CORREO ELECTRONICO",
+        "OBSERVACIÓN",
+        "ESTADO PÓLIZA",
+        "NÚMERO FACTURA VEHÍCULOS"
+    ]
+
+    df_original = st.session_state["df_original"]
+    buscar_id     = st.text_input("🔎 ID INSURATLAN")
+    buscar_poliza = st.text_input("🔎 Número de Póliza")
+    buscar_cedula = st.text_input("🔎 Número de Cédula")
+    buscar_nombre = st.text_input("🔎 Nombre Completo")
+
+    df_filtrado = df_original.copy()
+    # … tus filtros …
+    
+    if df_filtrado.empty:
+        st.info("No se encontró ningún asegurado con esos criterios.")
+    else:
+        registro = df_filtrado.iloc[0]
+        st.subheader(f"{registro['NOMBRE COMPLETO']} (ID {registro['ID INSURATLAN']})")
+
+        with st.form("form_editar"):
+            df_to_edit = registro[EDITABLE_COLS].to_frame().T.astype(str)
+            df_edit = st.data_editor(df_to_edit, num_rows="fixed", use_container_width=True)
+            if st.form_submit_button("💾 Guardar Cambios"):
+                mask = df_original["ID INSURATLAN"] == registro["ID INSURATLAN"]
+                for col in EDITABLE_COLS:
+                    df_original.loc[mask, col] = df_edit.at[0, col]
+                # persiste en sesión y Google Sheets …
+                st.success("✅ Cambios guardados")
+        st.dataframe(registro.to_frame().T)
+
 
     
-
-
-    # 3) Hacemos merge usando la columna correcta de df_original
-    df_nueva = df_nueva.merge(
-        df_original[['ID INSURATLAN','NÚMERO IDENTIFICACIÓN']],
-        left_on='IDENTIFICACION',            # de tu archivo de entrada
-        right_on='NÚMERO IDENTIFICACIÓN',    # la que ya está en df_original
-        how='left'
-    )
-    st.write(df_nueva)
-    #df_nueva = df_nueva.drop(columns=['NÚMERO IDENTIFICACIÓN_y']) \
-    #               .rename(columns={'NÚMERO IDENTIFICACIÓN_x':'NÚMERO IDENTIFICACIÓN'})
-
-    # 4) Ahora calculamos, sólo se crearán IDs donde `ID INSURATLAN` sea NaN
-    df_calc  = calcular_cotizacion(df_nueva)
-    df_orden = reorganizar_columnas_salida(df_calc)
-
-    # 5) Fusionamos con la original y eliminamos duplicados por ID
-    combinado = pd.concat([df_original, df_orden], ignore_index=True)
-    combinado = combinado.drop_duplicates(subset=["ID INSURATLAN"], keep="last")
-
-    # 6) Persistimos y mostramos
-    set_df_original(combinado)
-    persistir_en_sheet(combinado)
-
-    st.success("✅ Base original actualizada con la nueva carga")
-    st.dataframe(combinado)
-
-# ————— 5) Uploader de respuestas de póliza —————
-uploaded_resp = st.file_uploader("2️⃣ Sube respuesta de aseguradora", type=["xlsx"])
-if uploaded_resp:
-    df_resp = pd.read_excel(uploaded_resp)
-    df_resp = df_resp.set_index("ID INSURATLAN").copy()
-
-    # Actualiza sólo póliza y factura
-    for col in ["NÚMERO PÓLIZA VEHÍCULOS", "NÚMERO FACTURA VEHÍCULOS"]:
-        if col in df_resp.columns:
-            idxs = df_original["ID INSURATLAN"].isin(df_resp.index)
-            df_original.loc[idxs, col] = df_original.loc[idxs, "ID INSURATLAN"].map(df_resp[col])
-
-    # Persiste cambios
-    persistir_en_sheet(df_original)
-    st.success("✅ Pólizas y facturas actualizadas")
-    st.dataframe(df_original)
-
-EDITABLE_COLS = [
-    "TELEFONO",
-    "CORREO ELECTRONICO",
-    "OBSERVACIÓN",
-    "ESTADO PÓLIZA",
-    "NÚMERO FACTURA VEHÍCULOS"
-]
-# — Bloque de búsqueda y edición puntual —
-df_original = get_df_original()
-if not df_original.empty:
-    st.subheader("Buscar y editar un asegurado")
-
-    # 1) Input de búsqueda por ID o Póliza
-    buscar_id    = st.text_input("Buscar por ID INSURATLAN")
-    buscar_poliza = st.text_input("Buscar por NÚMERO PÓLIZA VEHÍCULOS")
-
-    # 2) Filtramos el DataFrame según lo ingresado
-    df_filtrado = df_original.copy()
-    if buscar_id:
-        df_filtrado = df_filtrado[df_filtrado["ID INSURATLAN"].astype(str) == buscar_id.strip()]
-    elif buscar_poliza:
-        df_filtrado = df_filtrado[df_filtrado["NÚMERO PÓLIZA VEHÍCULOS"].astype(str) == buscar_poliza.strip()]
-
-    if df_filtrado.empty:
-        st.info("No se encontró ningún registro con esos criterios.")
-    else:
-        # Debería ser un solo registro; tomamos el primero
-        st.write("Se encontró este asegurado:")
-        registro = df_filtrado.iloc[[0]]  # DataFrame de una sola fila
-
-        # 3) Preparamos la fila para editar:
-        df_to_edit = registro.set_index("ID INSURATLAN")[EDITABLE_COLS].astype(str)
-
-        # 4) Mostramos data_editor (ID en índice, no editable)
-        df_edit = st.data_editor(
-            df_to_edit,
-            num_rows="fixed",
-            use_container_width=True,
-        )
-
-        # 5) Guardar cambios
-        if st.button("💾 Guardar cambios en este registro"):
-            # Reseteamos índice para recuperar ID
-            df_edit = df_edit.reset_index()
-            id_ins = df_edit.at[0, "ID INSURATLAN"]
-
-            # 1) Volcamos cambios a df_original
-            mask = df_original["ID INSURATLAN"] == id_ins
-            for col in EDITABLE_COLS:
-                df_original.loc[mask, col] = df_edit.at[0, col]
-
-            # 2) Guardamos en sesión
-            set_df_original(df_original)
-
-            # 3) Normalizamos y reescribimos en Google Sheets
-            df_upd = df_original.copy()
-
-            # ⇨ Formatear columnas datetime como YYYY-MM-DD
-            for c in df_upd.select_dtypes(include=["datetime64", "datetime64[ns]"]):
-                df_upd[c] = df_upd[c].dt.strftime("%Y-%m-%d")
-
-            # ⇨ Reemplazar NaT/NaN por cadena vacía
-            df_upd = df_upd.fillna("")
-
-            # ⇨ Convertir todo a str puro
-            df_upd = df_upd.astype(str)
-
-            # ⇨ Preparar payload para Google Sheets
-            values = [df_upd.columns.tolist()] + df_upd.values.tolist()
-
-            # ⇨ Limpiar la hoja y escribir los datos
-            hoja.clear()
-            hoja.update(values)
-
-            st.success(f"✅ Registro {id_ins} actualizado local y en Google Sheets")
-            st.dataframe(df_original.loc[mask])
-
-df_to_download = st.session_state.get("df_original", pd.DataFrame())
-
-# Si tienes datos, ofrécelos
-if not df_to_download.empty:
-    # Opción Excel
-    buffer = io.BytesIO()
-    df_to_download.to_excel(buffer, index=False, engine="openpyxl")
-    buffer.seek(0)
-    st.download_button(
-        label="📥 Descargar base completa (Excel)",
-        data=buffer,
-        file_name="base_insurprime.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
-    # Opción CSV (descomenta si la prefieres)
-    # csv = df_to_download.to_csv(index=False).encode("utf-8")
-    # st.download_button(
-    #     label="📥 Descargar base completa (CSV)",
-    #     data=csv,
-    #     file_name="base_insurprime.csv",
-    #     mime="text/csv"
-    # )
-else:
-    st.info("La base está vacía; no hay nada para descargar.")
+    
