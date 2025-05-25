@@ -755,13 +755,12 @@ with tab2:
                 persistir_en_sheet(df_original)
         
                 st.success("✅ Cambios guardados en Google Sheets")
-                st.rerun()
-
         
                 # 5) Mostrar el registro ya actualizado
                 registro_act = df_original[mask_upd].iloc[0]
                 st.markdown("### Registro tras edición:")
                 st.dataframe(registro_act.to_frame().T)
+                st.rerun()
 
 
 
