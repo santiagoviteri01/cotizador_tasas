@@ -702,7 +702,23 @@ with tab2:
     buscar_nombre = st.text_input("🔎 Nombre Completo")
 
     df_filtrado = df_original.copy()
-    # … tus filtros …
+       # Construimos una máscara que empiece siendo True para todas las filas
+    mask = pd.Series(True, index=df_original.index)
+
+    # Vamos aplicando los filtros sólo si el usuario escribió algo
+    if buscar_id:
+        mask &= df_original["ID INSURATLAN"].astype(str) == buscar_id.strip()
+    if buscar_poliza:
+        mask &= df_original["NÚMERO PÓLIZA VEHÍCULOS"].astype(str) == buscar_poliza.strip()
+    if buscar_cedula:
+        mask &= df_original["NÚMERO IDENTIFICACIÓN"].astype(str) == buscar_cedula.strip()
+    if buscar_nombre:
+        mask &= df_original["NOMBRE COMPLETO"] \
+                    .str.contains(buscar_nombre.strip(), case=False, na=False)
+
+    # Aplicamos la máscara
+    df_filtrado = df_original[mask]
+
     
     if df_filtrado.empty:
         st.info("No se encontró ningún asegurado con esos criterios.")
@@ -710,15 +726,31 @@ with tab2:
         registro = df_filtrado.iloc[0]
         st.subheader(f"{registro['NOMBRE COMPLETO']} (ID {registro['ID INSURATLAN']})")
 
+        # Formulario de edición
         with st.form("form_editar"):
             df_to_edit = registro[EDITABLE_COLS].to_frame().T.astype(str)
-            df_edit = st.data_editor(df_to_edit, num_rows="fixed", use_container_width=True)
+            df_edit = st.data_editor(
+                df_to_edit,
+                num_rows="fixed",
+                use_container_width=True
+            )
             if st.form_submit_button("💾 Guardar Cambios"):
-                mask = df_original["ID INSURATLAN"] == registro["ID INSURATLAN"]
+                mask_upd = df_original["ID INSURATLAN"] == registro["ID INSURATLAN"]
                 for col in EDITABLE_COLS:
-                    df_original.loc[mask, col] = df_edit.at[0, col]
-                # persiste en sesión y Google Sheets …
+                    df_original.loc[mask_upd, col] = df_edit.at[0, col]
+                # Persistir en sesión y en Google Sheets
+                st.session_state["df_original"] = df_original
+                df_upd = df_original.copy()
+                for c in df_upd.select_dtypes(include=["datetime64[ns]"]):
+                    df_upd[c] = df_upd[c].dt.strftime("%Y-%m-%d")
+                df_upd = df_upd.fillna("").astype(str)
+                values = [df_upd.columns.tolist()] + df_upd.values.tolist()
+                hoja.clear()
+                hoja.update(values)
                 st.success("✅ Cambios guardados")
+
+        st.markdown("---")
+        st.write("Vista rápida del registro:")
         st.dataframe(registro.to_frame().T)
 
 
