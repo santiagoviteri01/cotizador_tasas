@@ -707,6 +707,13 @@ else:
         buscar_nombre = col2.text_input("Nombre Completo (o parte)")
 
     # ——— Aplicar máscara ———
+    EDITABLE_COLS = [
+        "TELEFONO",
+        "CORREO ELECTRONICO",
+        "OBSERVACIÓN",
+        "ESTADO PÓLIZA",
+        "NÚMERO FACTURA VEHÍCULOS"
+    ]
     df_original = st.session_state["df_original"]
     mask = pd.Series(True, index=df_original.index)
     if buscar_id:
