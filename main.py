@@ -687,7 +687,7 @@ with tab1:
 with tab2:
     st.header("2️⃣ Buscar y Editar Asegurados")
 
-    # Columnas que el usuario puede editar
+    # Columnas que permitiremos editar
     EDITABLE_COLS = [
         "TELEFONO",
         "CORREO ELECTRONICO",
@@ -696,16 +696,16 @@ with tab2:
         "NÚMERO FACTURA VEHÍCULOS"
     ]
 
-    # 1) Cargamos la base desde sesión
+    # Cargamos la base
     df_original = st.session_state["df_original"]
 
-    # 2) Inputs de búsqueda
+    # Inputs de búsqueda
     buscar_id      = st.text_input("🔎 ID INSURATLAN")
     buscar_poliza  = st.text_input("🔎 Número de Póliza")
     buscar_cedula  = st.text_input("🔎 Número de Cédula")
     buscar_nombre  = st.text_input("🔎 Nombre Completo (o parte)")
 
-    # 3) Construimos la máscara combinada
+    # Máscara combinada
     mask = pd.Series(True, index=df_original.index)
     if buscar_id:
         mask &= df_original["ID INSURATLAN"].astype(str) == buscar_id.strip()
@@ -718,44 +718,42 @@ with tab2:
 
     df_filtrado = df_original[mask]
 
-    # 4) Si no hay resultados…
     if df_filtrado.empty:
         st.info("No se encontró ningún asegurado con esos criterios.")
-        st.stop()
+    else:
+        # Tomamos el primer registro coincidente
+        registro = df_filtrado.iloc[0]
+        st.subheader(f"{registro['NOMBRE COMPLETO']} (ID {registro['ID INSURATLAN']})")
+        st.markdown("---")
 
-    # 5) Tomamos el primer resultado
-    registro = df_filtrado.iloc[0]
-    st.subheader(f"{registro['NOMBRE COMPLETO']} (ID {registro['ID INSURATLAN']})")
-    st.dataframe(registro.to_frame().T)
-    st.markdown("---")
+        # Preparamos un DataFrame de una sola fila para editar
+        df_to_edit = registro[EDITABLE_COLS].to_frame().T
+        df_to_edit.index = [registro["ID INSURATLAN"]]
 
-    # 6) Preparamos el formulario
-    df_to_edit = registro[EDITABLE_COLS].to_frame().T.astype(str)
-    with st.form("form_editar"):
+        # Mostramos el editor
         df_edit = st.data_editor(
             df_to_edit,
-            num_rows="fixed",
-            use_container_width=True
+            use_container_width=True,
+            key="editor_asegurado"
         )
-        submitted = st.form_submit_button("💾 Guardar Cambios")
 
-    # 7) Si el usuario envía el formulario, aplicamos los cambios de inmediato
-    if submitted:
-        # a) Volcar los valores editados en df_original
-        id_ins   = registro["ID INSURATLAN"]
-        mask_upd = df_original["ID INSURATLAN"] == id_ins
-        for col in EDITABLE_COLS:
-            df_original.loc[mask_upd, col] = df_edit.iloc[0][col]
+        # Botón para guardar cambios
+        if st.button("💾 Guardar Cambios"):
+            id_ins = registro["ID INSURATLAN"]
+            # Copiamos los valores de df_edit al original
+            for col in EDITABLE_COLS:
+                df_original.loc[
+                    df_original["ID INSURATLAN"] == id_ins, col
+                ] = df_edit.at[id_ins, col]
 
-        # b) Actualizar sesión y Google Sheets
-        st.session_state["df_original"] = df_original
-        persistir_en_sheet(df_original)
+            # Actualizamos sesión y Google Sheets
+            st.session_state["df_original"] = df_original
+            persistir_en_sheet(df_original)
 
-        st.success("✅ Cambios guardados en Google Sheets")
-
-        # c) Re-mostrar el registro actualizado
-        registro_act = df_original[mask_upd].iloc[0]
-        st.dataframe(registro_act.to_frame().T)
+            st.success("✅ Cambios guardados en Google Sheets")
+            # Mostramos el registro actualizado
+            registro_act = df_original[df_original["ID INSURATLAN"] == id_ins].iloc[0]
+            st.dataframe(registro_act.to_frame().T)
 
 
 
