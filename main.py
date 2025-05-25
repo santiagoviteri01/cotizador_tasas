@@ -725,6 +725,9 @@ with tab2:
     else:
         registro = df_filtrado.iloc[0]
         st.subheader(f"{registro['NOMBRE COMPLETO']} (ID {registro['ID INSURATLAN']})")
+        st.markdown("---")
+        st.write("Vista rápida del registro:")
+        st.dataframe(registro.to_frame().T)
 
         # Formulario de edición
         with st.form("form_editar"):
@@ -748,10 +751,13 @@ with tab2:
                 st.session_state["df_original"] = df_original
                 # ... resto de tu código de persistencia
                 st.success("✅ Cambios guardados")
+            
+                # Volvemos a extraer el mismo registro ya modificado
+                mask_upd    = df_original["ID INSURATLAN"] == registro["ID INSURATLAN"]
+                registro_n = df_original[mask_upd].iloc[0]
+                st.markdown("### Registro tras edición:")
+                st.dataframe(registro_n.to_frame().T)
 
-        st.markdown("---")
-        st.write("Vista rápida del registro:")
-        st.dataframe(registro.to_frame().T)
 
 
     
